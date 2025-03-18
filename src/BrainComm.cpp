@@ -3,24 +3,23 @@
 using namespace std;
 
 namespace Brain {
-std::atomic<bool> BrainComm::read_in_progress{false};
+
+
+// Constructor
 BrainComm::BrainComm(boost::asio::io_service& service, const std::string& usb_port)
     : io_service(service)
     , port(usb_port)
     , running(false)
     , connected(false)
     , serial_port(nullptr)
-    , io_thread(nullptr)
     , request_in_progress(false)
     , request_retry_count(0)
     , request_flags(static_cast<uint16_t>(RequestFlag::NoData))
     , response_flags(static_cast<uint16_t>(RequestFlag::NoData))
-
     , sendData(false)
     , last_send_time(0)
     , last_received_time(0)
     , last_request_time(0)
-    , timer(io_service)
     , read_buffer(CommConstants::MAX_BUFFER_SIZE)
     , buffer_index(0)
     , brain_battery(0)
@@ -35,8 +34,7 @@ BrainComm::BrainComm(boost::asio::io_service& service, const std::string& usb_po
     // Initialize command structures
     current_motor_command = {0.0, 0.0, 0};
     current_control_flags = {0};
-
-
+    current_battery_lvl = 0;
     
     // Try to connect if port is provided
     if (!port.empty()) {
@@ -44,9 +42,112 @@ BrainComm::BrainComm(boost::asio::io_service& service, const std::string& usb_po
     }
 }
 
-BrainComm::~BrainComm() {
+BrainComm::~BrainComm() 
+{
     stop();
 }
+
+
+
+bool BrainComm::start() {
+    if (running) return true;
+    
+    if (!connected && !reconnect()) {
+        std::cerr << "Failed to establish initial connection" << std::endl;
+        // Continue anyway, threads will handle reconnection attempts
+    }
+    
+    // Set running flag before starting threads
+    running = true;
+    buffer_index = 0;
+    
+    // Start the read and write threads
+    try {
+        read_thread = std::make_unique<std::thread>(&BrainComm::readLoop, this);
+        write_thread = std::make_unique<std::thread>(&BrainComm::writeLoop, this);
+    } catch (const std::exception& e) {
+        std::cerr << "Failed to start threads: " << e.what() << std::endl;
+        running = false;
+        return false;
+    }
+    
+    return true;
+}
+
+void BrainComm::stop() {
+    // Set running to false to signal threads to exit
+    running = false;
+    
+    // Signal the write condition variable to wake up the write thread
+    write_condition.notify_all();
+    
+    // Cancel any pending operations on the serial port
+    if (serial_port && serial_port->is_open()) {
+        try {
+            serial_port->cancel();
+        } catch (...) {}
+    }
+    
+    // Wait for threads to finish
+    if (read_thread && read_thread->joinable()) {
+        read_thread->join();
+    }
+    
+    if (write_thread && write_thread->joinable()) {
+        write_thread->join();
+    }
+    
+    // Clean up resources
+    if (serial_port && serial_port->is_open()) {
+        try {
+            serial_port->close();
+        } catch (...) {}
+    }
+    
+    connected = false;
+}
+
+bool BrainComm::restart() {
+    stop();
+    return start();
+}
+
+
+
+
+bool BrainComm::reconnect() {
+    // Acquire the state mutex to prevent concurrent access to shared state
+    std::lock_guard<std::mutex> lock(state_mutex);
+    
+    // Close the existing serial port if it's open
+    if (serial_port && serial_port->is_open()) {
+        try {
+            serial_port->cancel();
+            serial_port->close();
+        } catch (const std::exception& e) {
+            std::cerr << "Error closing serial port: " << e.what() << std::endl;
+            // Continue anyway - we want to try reopening
+        }
+    }
+    
+    // Reset communication state
+    while (!pending_requests.empty()) pending_requests.pop();
+    request_in_progress = false;
+    request_retry_count = 0;
+    sendData = false;
+    buffer_index = 0;  // Reset buffer
+    
+    // Attempt to initialize the port
+    if (initializePort()) {
+        std::cout << "Successfully reconnected to port " << port << std::endl;
+        stats.recordConnectionStatus(true);
+        return true;
+    } else {
+        std::cerr << "Failed to reconnect to port " << port << std::endl;
+        return false;
+    }
+}
+
 
 bool BrainComm::initializePort() 
 {
@@ -72,100 +173,7 @@ bool BrainComm::initializePort()
     }
 }
 
-bool BrainComm::start() {
-    if (running) return true;
-    
-    if (!connected && !reconnect()) {
-        return false;
-    }
-    
-    running = true;
-    buffer_index = 0;
-    
-    // Start reading from the serial port
-    startAsyncRead();
-    
-    // Start the timer for periodic operations
-    timer.expires_from_now(boost::posix_time::milliseconds(20));
-    timer.async_wait(std::bind(&BrainComm::handleTimer, this, std::placeholders::_1));
-    
-    // Create a thread to run the io_service
-	io_thread = make_unique<thread>([this]() {
-    try {
-        boost::system::error_code ec;
-        while (running) {
-            // Run until there are no more handlers to execute
-            io_service.poll(ec);
-            
-            // Reset io_service so it can be reused
-            io_service.reset();
-            
-            // Sleep a short time to avoid high CPU usage
-            this_thread::sleep_for(chrono::milliseconds(10));
-        }
-    } 
-    catch (const std::exception& e) {
-        cerr << "Exception in io_service thread: " << e.what() << endl;
-    }
-});
-    
-    return true;
-}
 
-void BrainComm::stop() {
-    running = false;
-    
-    // Cancel any pending asynchronous operations
-    if (serial_port && serial_port->is_open()) {
-        try {
-            serial_port->cancel();
-        } catch (...) {}
-    }
-    
-    timer.cancel();
-    
-    if (io_thread && io_thread->joinable()) {
-        io_thread->join();
-    }
-    
-    if (serial_port && serial_port->is_open()) {
-        try {
-            serial_port->close();
-        } catch (...) {}
-    }
-    
-    connected = false;
-}
-
-bool BrainComm::restart() 
-{
-    stop();
-    return start();
-}
-
-bool BrainComm::reconnect() {
-    if (serial_port && serial_port->is_open()) {
-        try {
-            serial_port->close();
-        } catch (...) {}
-    }
-    
-    // Reset communication state
-    std::lock_guard<std::mutex> lock(state_mutex);
-    while (!pending_requests.empty()) pending_requests.pop();
-    request_in_progress = false;
-    request_retry_count = 0;
-    sendData = false;
-    buffer_index = 0;  // Reset buffer
-    
-    // Attempt to initialize the port
-    if (initializePort()) {
-        // Start the read loop immediately after successful reconnection
-        startAsyncRead();
-        return true;
-    }
-    return false;
-}
 
 bool BrainComm::updateRequests(uint16_t flags) 
 {
@@ -176,299 +184,282 @@ bool BrainComm::updateRequests(uint16_t flags)
 }
 
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-void BrainComm::startAsyncRead() {
-    if (!running) {
-        return;
-    }
-    
-    // Skip if already reading - prevents double reads
-    if (read_in_progress) {
-        return;
-    }
-    
-    // Skip if serial port isn't available
-    if (!serial_port || !serial_port->is_open()) {
-        return;
-    }
-    
-    read_in_progress = true;
-    
-    serial_port->async_read_some(
-        boost::asio::buffer(&read_buffer[buffer_index], 1),
-        std::bind(&BrainComm::handleRead, this,
-                  std::placeholders::_1,
-                  std::placeholders::_2)
-    );
-}
 
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-void BrainComm::handleRead(const boost::system::error_code& ec, std::size_t bytes_transferred) 
-{
-    if (!running) {
-        return;
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Read thread function
+void BrainComm::readLoop() {
+    std::cout << "Read thread started" << std::endl;
     
-    // Mark that we're no longer in a read operation
-    read_in_progress = false;
+    // Buffer for reading
+    std::vector<uint8_t> local_buffer(CommConstants::MAX_BUFFER_SIZE);
+    size_t local_buffer_index = 0;
     
-    if (ec) {
-        if (ec != boost::asio::error::operation_aborted) {
-            std::cerr << "DEBUG: Read error: " << ec.message() << std::endl;
-            stats.logError(CommError::ReadTimeout, "Read error: " + ec.message());
-            stats.incrementReceiveStats(false);
-            
-            // Only mark as disconnected for serious errors, not timeouts
-            if (ec == boost::asio::error::bad_descriptor || 
-                ec == boost::asio::error::broken_pipe ||
-                ec == boost::asio::error::not_connected) {
-                connected = false;
-                std::cerr << "DEBUG: Connection lost to Brain" << std::endl;
-            }
-        }
-        
-        // Always try to restart reading if port is open
-        if (serial_port && serial_port->is_open()) {
-            buffer_index = 0;  // Reset buffer index for clean state
-            startAsyncRead();
-        }
-        return;
-    }
-    
-    // Successfully read data
-    if (bytes_transferred > 0) {
-        // Safety check for buffer overflow
-        if (buffer_index + bytes_transferred > CommConstants::MAX_BUFFER_SIZE) {
-            std::cerr << "DEBUG: Buffer would overflow, resetting buffer" << std::endl;
-            buffer_index = 0;
-        }
-        
-        std::cerr << "DEBUG: Received " << bytes_transferred << " bytes. Buffer size now: " 
-                 << buffer_index << " + " << bytes_transferred << " = " 
-                 << (buffer_index + bytes_transferred) << std::endl;
-                 
-        // Hex dump of received bytes
-        std::cerr << "DEBUG: Raw bytes: ";
-        for (size_t i = 0; i < bytes_transferred; i++) {
-            std::cerr << std::hex << std::setw(2) << std::setfill('0') 
-                     << static_cast<int>(read_buffer[buffer_index + i]) << " ";
-        }
-        std::cerr << std::dec << std::endl;
-        
-        // Increment buffer index
-        buffer_index += bytes_transferred;
-        
-        // Search for start marker in buffer - only if we have enough bytes
-        bool found_start = false;
-        size_t start_pos = 0;
-        
-        if (buffer_index >= 2) {
-            for (size_t i = 0; i <= buffer_index - 2; i++) {
-                if (read_buffer[i] == CommConstants::START_MARKER_1 && 
-                    read_buffer[i+1] == CommConstants::START_MARKER_2) {
-                    
-                    found_start = true;
-                    start_pos = i;
-                    
-                    // If we found a start marker not at the beginning, shift buffer
-                    if (i > 0) {
-                        std::cerr << "DEBUG: Found start marker at offset " << i 
-                                 << ", shifting buffer" << std::endl;
-                        memmove(read_buffer.data(), read_buffer.data() + i, buffer_index - i);
-                        buffer_index -= i;
-                    }
-                    
-                    break;
+    while (running) {
+        try {
+            // Check if we're connected
+            if (!connected) {
+                // Attempt to reconnect if not connected
+                std::lock_guard<std::mutex> lock(state_mutex);
+                if (reconnect()) {
+                    std::cout << "Successfully reconnected in read thread" << std::endl;
+                } else {
+                    // Sleep briefly before next attempt
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    continue;
                 }
             }
-        }
-        
-        // If no start marker found, keep reading
-        if (!found_start) {
-            std::cerr << "DEBUG: No start marker found, continuing to read" << std::endl;
-            startAsyncRead();
-            return;
-        }
-        
-        // Check if we have enough data for a complete header
-        if (buffer_index >= sizeof(RequestHeader)) {
-            RequestHeader* header = reinterpret_cast<RequestHeader*>(read_buffer.data());
             
-            // Verify start marker (redundant check, but good for safety)
-            if (header->start_marker[0] != CommConstants::START_MARKER_1 || 
-                header->start_marker[1] != CommConstants::START_MARKER_2) {
-                std::cerr << "DEBUG: Invalid start marker in header, discarding" << std::endl;
-                buffer_index = 0;
-                startAsyncRead();
-                return;
-            }
-            
-            std::cerr << "DEBUG: Header fields - type: " << static_cast<int>(header->message_type)
-                     << ", flags: 0x" << std::hex << header->flags 
-                     << ", length: " << std::dec << header->length << std::endl;
-            
-            // Validate header length
-            if (header->length > CommConstants::MAX_BUFFER_SIZE - sizeof(RequestHeader) - sizeof(EndMarker)) {
-                std::cerr << "DEBUG: Invalid message length: " << header->length << std::endl;
-                buffer_index = 0;
-                startAsyncRead();
-                return;
-            }
-            
-            // Calculate total message length including header and end marker
-            size_t total_length = sizeof(RequestHeader) + header->length + sizeof(EndMarker);
-            
-            // Check if we have enough data for the complete message
-            if (buffer_index >= total_length) {
-                // Check end marker
-                EndMarker* end = reinterpret_cast<EndMarker*>(
-                    read_buffer.data() + sizeof(RequestHeader) + header->length);
-                    
-                if (end->marker[0] != CommConstants::END_MARKER_1 || 
-                    end->marker[1] != CommConstants::END_MARKER_2) {
-                    std::cerr << "DEBUG: Invalid end marker, discarding" << std::endl;
-                    
-                    // Look for another start marker after the current one
-                    for (size_t i = 2; i <= buffer_index - 2; i++) {
-                        if (read_buffer[i] == CommConstants::START_MARKER_1 && 
-                            read_buffer[i+1] == CommConstants::START_MARKER_2) {
-                            
-                            std::cerr << "DEBUG: Found another start marker at offset " << i 
-                                     << ", shifting buffer" << std::endl;
-                            memmove(read_buffer.data(), read_buffer.data() + i, buffer_index - i);
-                            buffer_index -= i;
-                            startAsyncRead();
-                            return;
+            // Attempt to read data with timeout
+            if (serial_port && serial_port->is_open()) {
+                // Set up a timer for timeout
+                boost::asio::deadline_timer timer(io_service);
+                timer.expires_from_now(boost::posix_time::milliseconds(CommConstants::READ_TIMEOUT.count()));
+                
+                boost::system::error_code ec;
+                size_t bytes_read = 0;
+                
+                // Start asynchronous read
+                serial_port->async_read_some(
+                    boost::asio::buffer(&local_buffer[local_buffer_index], 1),
+                    [&](const boost::system::error_code& error, size_t bytes) {
+                        ec = error;
+                        bytes_read = bytes;
+                        timer.cancel(); // Cancel the timer when read completes
+                    }
+                );
+                
+                // Start timer handler
+                timer.async_wait([&](const boost::system::error_code& error) {
+                    if (!error) {
+                        // Timeout occurred
+                        serial_port->cancel(); // Cancel the ongoing read
+                    }
+                });
+                
+                // Run the io_service until one operation completes
+                io_service.reset();
+                io_service.run_one();
+                
+                // Process read result
+                if (ec) {
+                    if (ec != boost::asio::error::operation_aborted) {
+                        // Read error occurred
+                        std::cerr << "Read error: " << ec.message() << std::endl;
+                        stats.logError(CommError::ReadTimeout, "Read error: " + ec.message());
+                        stats.incrementReceiveStats(false);
+                        
+                        // Only mark as disconnected for serious errors
+                        if (ec == boost::asio::error::bad_descriptor || 
+                            ec == boost::asio::error::broken_pipe ||
+                            ec == boost::asio::error::not_connected) {
+                            connected = false;
                         }
                     }
-                    
-                    // No other start marker found, discard everything
-                    buffer_index = 0;
-                    startAsyncRead();
-                    return;
+                    // If operation was canceled by timer, we just continue
+                    continue;
                 }
                 
-                // Process based on message type
-                MessageType msg_type = static_cast<MessageType>(header->message_type);
-                uint16_t flags = header->flags;
-                
-                switch (msg_type) {
-                    case MessageType::Request:
-                        std::cerr << "DEBUG: Received request message with flags: 0x" 
-                                 << std::hex << flags << std::dec << std::endl;
+                // Successfully read data
+                if (bytes_read > 0) {
+                    // Safety check for buffer overflow
+                    if (local_buffer_index + bytes_read >= CommConstants::MAX_BUFFER_SIZE) {
+                        std::cerr << "Buffer would overflow, resetting" << std::endl;
+                        local_buffer_index = 0;
+                    }
+                    
+                    // Increment buffer index
+                    local_buffer_index += bytes_read;
+                    
+                    // Process the buffer for complete messages
+                    size_t processed_bytes = 0;
+                    while (processed_bytes < local_buffer_index) {
+                        // Look for start marker
+                        bool found_start = false;
+                        size_t start_pos = 0;
                         
-                        // Set response flags based on what the Brain is requesting
-                        response_flags = flags;
+                        for (size_t i = processed_bytes; i <= local_buffer_index - 2; i++) {
+                            if (local_buffer[i] == CommConstants::START_MARKER_1 && 
+                                local_buffer[i+1] == CommConstants::START_MARKER_2) {
+                                found_start = true;
+                                start_pos = i;
+                                break;
+                            }
+                        }
                         
-                        // Now we should send data (but only if the Brain actually requested something)
-                        sendData = (flags != static_cast<uint16_t>(Brain::RequestFlag::NoData));
+                        if (!found_start) {
+                            // No start marker found, discard processed bytes
+                            if (processed_bytes > 0) {
+                                memmove(local_buffer.data(), local_buffer.data() + processed_bytes, 
+                                       local_buffer_index - processed_bytes);
+                                local_buffer_index -= processed_bytes;
+                            }
+                            break;
+                        }
                         
-                        // Update the last received time since we got a valid message
-                        last_received_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-                            std::chrono::steady_clock::now().time_since_epoch()).count();
+                        // If start marker is not at the beginning, shift buffer
+                        if (start_pos > processed_bytes) {
+                            memmove(local_buffer.data() + processed_bytes, 
+                                   local_buffer.data() + start_pos, 
+                                   local_buffer_index - start_pos);
+                            local_buffer_index -= (start_pos - processed_bytes);
+                            start_pos = processed_bytes;
+                        }
+                        
+                        // Check if we have enough data for a complete header
+                        if (start_pos + sizeof(RequestHeader) <= local_buffer_index) {
+                            RequestHeader* header = reinterpret_cast<RequestHeader*>(
+                                local_buffer.data() + start_pos);
                             
-                        // If we got a valid message, the device must be connected
-                        connected = true;
-                        
-                        // Send acknowledgment (status 0 = success)
-                        sendAcknowledgment(flags, 0x00);
-                        break;
-                        
-                    case MessageType::Acknowledgment:
-                        if (header->length == 1) {
-                            // Get status byte
-                            uint8_t* status_byte = read_buffer.data() + sizeof(RequestHeader);
-                            uint8_t status = *status_byte;
+                            // Calculate total message length
+                            size_t total_length = sizeof(RequestHeader) + header->length + sizeof(EndMarker);
                             
-                            std::cerr << "DEBUG: Received acknowledgment message with flags: 0x" 
-                                     << std::hex << flags << ", status: " << static_cast<int>(status) 
-                                     << std::dec << std::endl;
-                            
-                            std::lock_guard<std::mutex> lock(state_mutex);
-                            if (request_in_progress && !pending_requests.empty() && 
-                                pending_requests.front() == flags) {
-                                
-                                // Process acknowledgment
-                                request_flags = flags;  // Store what we requested
-                                pending_requests.pop();
-                                request_in_progress = false;
-                                request_retry_count = 0;
-                                
-                                // Update connected status and last received time
-                                connected = true;
-                                last_received_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-                                    std::chrono::steady_clock::now().time_since_epoch()).count();
-                                
-                                std::cerr << "Acknowledgment received for flags: 0x" 
-                                         << std::hex << flags 
-                                         << ", status: " << static_cast<int>(status) 
-                                         << std::dec << std::endl;
+                            // Check if we have the complete message
+                            if (start_pos + total_length <= local_buffer_index) {
+                                // Process the complete message
+                                if (handleMessage(local_buffer.data() + start_pos, total_length)) {
+                                    // Message handled successfully
+                                    processed_bytes = start_pos + total_length;
+                                } else {
+                                    // Message handling failed, move past this start marker
+                                    processed_bytes = start_pos + 2;
+                                }
+                            } else {
+                                // Incomplete message, need more data
+                                break;
                             }
                         } else {
-                            std::cerr << "DEBUG: Invalid acknowledgment message length" << std::endl;
+                            // Not enough data for header, need to read more
+                            break;
                         }
-                        break;
-                        
-                    case MessageType::Response:
-                        std::cerr << "DEBUG: Received response message with flags: 0x" 
-                                 << std::hex << flags << std::dec 
-                                 << ", length: " << header->length << std::endl;
-                        
-                        // Process the received data
-                        processReceivedData(flags, 
-                                           read_buffer.data() + sizeof(RequestHeader), 
-                                           header->length);
-                        
-                        // Update connection status and timestamp
-                        connected = true;
-                        last_received_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-                            std::chrono::steady_clock::now().time_since_epoch()).count();
-                        break;
-                        
-                    case MessageType::Handshake:
-                        std::cerr << "DEBUG: Received handshake message" << std::endl;
-                        
-                        // Update connection status and timestamp
-                        connected = true;
-                        last_received_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-                            std::chrono::steady_clock::now().time_since_epoch()).count();
-                        
-                        // Respond to handshake with acknowledgment
-                        sendAcknowledgment(0, 0x00);
-                        break;
-                        
-                    default:
-                        std::cerr << "DEBUG: Unknown message type: " 
-                                 << static_cast<int>(header->message_type) << std::endl;
-                        break;
-                }
-                
-                // Move any remaining data to the start of buffer
-                if (buffer_index > total_length) {
-                    memmove(read_buffer.data(), read_buffer.data() + total_length, 
-                           buffer_index - total_length);
-                    buffer_index -= total_length;
+                    }
                     
-                    std::cerr << "DEBUG: Moved " << buffer_index << " remaining bytes to buffer start" << std::endl;
-                } else {
-                    buffer_index = 0;
+                    // Move any remaining unprocessed data to the beginning of the buffer
+                    if (processed_bytes > 0 && processed_bytes < local_buffer_index) {
+                        memmove(local_buffer.data(), local_buffer.data() + processed_bytes,
+                               local_buffer_index - processed_bytes);
+                        local_buffer_index -= processed_bytes;
+                    } else if (processed_bytes == local_buffer_index) {
+                        local_buffer_index = 0;
+                    }
                 }
             } else {
-                std::cerr << "DEBUG: Incomplete message, have " << buffer_index 
-                         << " bytes, need " << total_length << " bytes" << std::endl;
+                // Not connected or port not open
+                connected = false;
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
+        } catch (const std::exception& e) {
+            std::cerr << "Exception in read thread: " << e.what() << std::endl;
+            connected = false;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     }
     
-    // Start the next read operation - ALWAYS do this to maintain the read chain
-    startAsyncRead();
+    std::cout << "Read thread stopped" << std::endl;
+}
+
+// Write thread function
+void BrainComm::writeLoop() {
+    std::cout << "Write thread started" << std::endl;
+    
+    // For tracking periodic operations
+    uint32_t last_reconnect_attempt = 0;
+    uint32_t last_check_time = 0;
+    
+    while (running) {
+        try {
+            auto current_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count();
+            
+            // Check connection status
+            if (!connected) {
+                if (current_time - last_reconnect_attempt >= 1000) {
+                    last_reconnect_attempt = current_time;
+                    std::lock_guard<std::mutex> lock(state_mutex);
+                    if (reconnect()) {
+                        std::cout << "Successfully reconnected in write thread" << std::endl;
+                    }
+                }
+                
+                // Wait a bit before next iteration if not connected
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                continue;
+            }
+            
+            // Check for pending requests
+            bool request_sent = false;
+            {
+                std::lock_guard<std::mutex> lock(state_mutex);
+                if (!request_in_progress && !pending_requests.empty()) {
+                    uint16_t flags = pending_requests.front();
+                    request_in_progress = true;
+                    
+                    // Release the lock before sending
+                    state_mutex.unlock();
+                    
+                    if (sendRequest(flags)) {
+                        last_request_time = current_time;
+                        request_sent = true;
+                    } else {
+                        // Request failed
+                        state_mutex.lock();
+                        request_in_progress = false;
+                    }
+                }
+            }
+            
+            // Check for request timeouts
+            if (!request_sent) {
+                checkRequestTimeout();
+            }
+            
+            // Send periodic data if enabled
+            if (sendData && current_time - last_send_time >= CommConstants::RESPONSE_UPDATE_PERIOD.count()) {
+                sendResponse(response_flags);
+            }
+            
+            // Wait for a short time or until signaled
+            {
+                std::unique_lock<std::mutex> lock(write_mutex);
+                write_condition.wait_for(lock, std::chrono::milliseconds(20));
+            }
+            
+        } catch (const std::exception& e) {
+            std::cerr << "Exception in write thread: " << e.what() << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
+    
+    std::cout << "Write thread stopped" << std::endl;
 }
 
 
@@ -476,11 +467,9 @@ void BrainComm::handleRead(const boost::system::error_code& ec, std::size_t byte
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-// Start an asynchronous write operation
-bool BrainComm::startAsyncWrite(uint16_t flags, MessageType msg_type)
-{
+bool BrainComm::sendRequest(uint16_t flags) {
     if (!running || !connected || !serial_port || !serial_port->is_open()) {
-        std::cerr << "DEBUG: Cannot start async write - connection not ready" << std::endl;
+        std::cerr << "Cannot send request - connection not ready" << std::endl;
         return false;
     }
     
@@ -488,94 +477,38 @@ bool BrainComm::startAsyncWrite(uint16_t flags, MessageType msg_type)
     RequestHeader header;
     header.start_marker[0] = CommConstants::START_MARKER_1;
     header.start_marker[1] = CommConstants::START_MARKER_2;
-    header.message_type = static_cast<uint8_t>(msg_type);
+    header.message_type = static_cast<uint8_t>(MessageType::Request);
     header.flags = flags;
-    header.length = 0;  // Default to no payload
+    header.length = 0;  // No payload for requests
     
     // Set up end marker
     EndMarker end_marker;
     end_marker.marker[0] = CommConstants::END_MARKER_1;
     end_marker.marker[1] = CommConstants::END_MARKER_2;
     
-    // Create a sequence of buffers to send
-    std::vector<boost::asio::const_buffer> buffers;
-    buffers.push_back(boost::asio::buffer(&header, sizeof(header)));
-    
-    // If we have a payload, it would be added here
-    // buffers.push_back(boost::asio::buffer(payload_data, payload_size));
-    
-    // Add end marker
-    buffers.push_back(boost::asio::buffer(&end_marker, sizeof(end_marker)));
-    
-    std::cerr << "DEBUG: Sending message - type: " << static_cast<int>(msg_type) 
-             << ", flags: 0x" << std::hex << flags << std::dec << std::endl;
-             
-    // Start asynchronous write
-    boost::asio::async_write(*serial_port, buffers,
-        std::bind(&BrainComm::handleWrite, this,
-                  std::placeholders::_1,
-                  std::placeholders::_2,
-                  true)  // true indicates this is a request
-    );
-    
-    return true;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Handler for write completion
-void BrainComm::handleWrite(const boost::system::error_code& ec, std::size_t bytes_transferred, bool is_request) {
-    if (!running) {
-        return;
-    }
-    
-    if (ec) {
-        if (ec != boost::asio::error::operation_aborted) {
-            cerr << "Write error: " << ec.message() << endl;
-            stats.logError(CommError::TransmissionFailed, "Write error: " + ec.message());
-            stats.incrementTransmitStats(false);
-            connected = false;
-        }
-    }
-    else {
-        // Write succeeded
+    try {
+        // Use a synchronous write for simplicity in the dedicated thread model
+        boost::system::error_code ec;
+        
+        // Write header
+        boost::asio::write(*serial_port, boost::asio::buffer(&header, sizeof(header)), ec);
+        if (ec) throw boost::system::system_error(ec);
+        
+        // Write end marker
+        boost::asio::write(*serial_port, boost::asio::buffer(&end_marker, sizeof(end_marker)), ec);
+        if (ec) throw boost::system::system_error(ec);
+        
+        std::cerr << "Request sent with flags: 0x" << std::hex << flags << std::dec << std::endl;
         stats.incrementTransmitStats(true);
         
-        if (is_request) {
-            //cerr << "Request sent successfully" << endl;
-            last_request_time = chrono::duration_cast<chrono::milliseconds>(
-                chrono::steady_clock::now().time_since_epoch()).count();
-        }
-        else {
-			if(bytes_transferred > 0)
-			{
-            	//cerr << "Data sent successfully" << endl;
-            	last_send_time = chrono::duration_cast<chrono::milliseconds>(
-                chrono::steady_clock::now().time_since_epoch()).count();
-			}
-
-			else
-			{
-				cerr << "No Data sent successfully" << endl;
-			}
-		
-				
-        }
+        return true;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Failed to send request: " << e.what() << std::endl;
+        stats.incrementTransmitStats(false);
+        stats.logError(CommError::TransmissionFailed, "Failed to send request: " + std::string(e.what()));
+        connected = false;
+        return false;
     }
 }
 
@@ -584,86 +517,175 @@ void BrainComm::handleWrite(const boost::system::error_code& ec, std::size_t byt
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-void BrainComm::handleTimer(const boost::system::error_code& ec) {
-    if (!running) {
-        return;
+bool BrainComm::handleMessage(const uint8_t* buffer, size_t length) {
+    // Ensure we have at least a header
+    if (length < sizeof(RequestHeader)) {
+        std::cerr << "Message too short for header" << std::endl;
+        return false;
     }
     
-    if (!ec) {
-        // Periodic connection check & reconnection attempts
-        static uint32_t last_reconnect_attempt = 0;
-        static uint32_t last_read_check = 0;
-        auto current_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now().time_since_epoch()).count();
+    const RequestHeader* header = reinterpret_cast<const RequestHeader*>(buffer);
+    
+    // Verify start marker
+    if (header->start_marker[0] != CommConstants::START_MARKER_1 || 
+        header->start_marker[1] != CommConstants::START_MARKER_2) {
+        std::cerr << "Invalid start marker in message" << std::endl;
+        return false;
+    }
+    
+    // Calculate total expected length
+    size_t expected_length = sizeof(RequestHeader) + header->length + sizeof(EndMarker);
+    if (length < expected_length) {
+        std::cerr << "Message shorter than expected length" << std::endl;
+        return false;
+    }
+    
+    // Verify end marker
+    const EndMarker* end = reinterpret_cast<const EndMarker*>(
+        buffer + sizeof(RequestHeader) + header->length);
+        
+    if (end->marker[0] != CommConstants::END_MARKER_1 || 
+        end->marker[1] != CommConstants::END_MARKER_2) {
+        std::cerr << "Invalid end marker in message" << std::endl;
+        return false;
+    }
+    
+    // Process based on message type
+    MessageType msg_type = static_cast<MessageType>(header->message_type);
+    uint16_t flags = header->flags;
+    
+    switch (msg_type) {
+        case MessageType::Request:
+            std::cerr << "Received request message with flags: 0x" 
+                     << std::hex << flags << std::dec << std::endl;
             
-        // Attempt reconnection every 2 seconds if not connected
-        if (!connected && (current_time - last_reconnect_attempt >= 2000)) {
-            last_reconnect_attempt = current_time;
-            std::cerr << "DEBUG: Not connected to Brain, attempting to reconnect..." << std::endl;
+            {
+                // Use a lock to update shared state
+                std::lock_guard<std::mutex> lock(state_mutex);
+                
+                // Set response flags based on what the Brain is requesting
+                response_flags = flags;
+                
+                // Now we should send data (but only if the Brain actually requested something)
+                sendData = (flags != static_cast<uint16_t>(Brain::RequestFlag::NoData));
+                
+                // Update the last received time
+                last_received_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now().time_since_epoch()).count();
+                    
+                // If we got a valid message, the device must be connected
+                connected = true;
+            }
             
-            if (reconnect()) {
-                std::cerr << "DEBUG: Successfully reconnected to Brain" << std::endl;
+            // Signal the write thread to wake up
+            {
+                std::unique_lock<std::mutex> lock(write_mutex);
+                write_condition.notify_one();
+            }
+            
+            // Send acknowledgment (status 0 = success)
+            sendAcknowledgment(flags, 0x00);
+            
+            // Update statistics
+            stats.incrementReceiveStats(true);
+            break;
+            
+        case MessageType::Acknowledgment:
+            if (header->length == 1) {
+                // Get status byte
+                uint8_t status = *(buffer + sizeof(RequestHeader));
+                
+                std::cerr << "Received acknowledgment message with flags: 0x" 
+                         << std::hex << flags << ", status: " << static_cast<int>(status) 
+                         << std::dec << std::endl;
+                
+                std::lock_guard<std::mutex> lock(state_mutex);
+                if (request_in_progress && !pending_requests.empty() && 
+                    pending_requests.front() == flags) {
+                    
+                    // Process acknowledgment
+                    request_flags = flags;  // Store what we requested
+                    pending_requests.pop();
+                    request_in_progress = false;
+                    request_retry_count = 0;
+                    
+                    // Update connection status and timestamp
+                    connected = true;
+                    last_received_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now().time_since_epoch()).count();
+                    
+                    std::cerr << "Acknowledgment processed for flags: 0x" 
+                             << std::hex << flags 
+                             << ", status: " << static_cast<int>(status) 
+                             << std::dec << std::endl;
+                }
+                
+                // Update statistics
+                stats.incrementReceiveStats(true);
             } else {
-                std::cerr << "DEBUG: Reconnection attempt failed, will try again" << std::endl;
+                std::cerr << "Invalid acknowledgment message length" << std::endl;
+                stats.incrementReceiveStats(false);
+                return false;
             }
-        }
-        
-        // Check for read operation state every 5 seconds
-        if (current_time - last_read_check >= 5000) {
-            last_read_check = current_time;
+            break;
             
-            // Use read_in_progress to see if we have an active read
-            if (connected && serial_port && serial_port->is_open() && !read_in_progress.load()) {
-                std::cerr << "DEBUG: No active read operation detected, restarting read" << std::endl;
-                buffer_index = 0;
-                startAsyncRead();
+        case MessageType::Response:
+            std::cerr << "Received response message with flags: 0x" 
+                     << std::hex << flags << std::dec 
+                     << ", length: " << header->length << std::endl;
+            
+            // Process the received data
+            if (!processReceivedData(flags, 
+                                   buffer + sizeof(RequestHeader), 
+                                   header->length)) {
+                stats.incrementReceiveStats(false);
+                return false;
             }
-        }
-        
-        // Regular timer operations
-        checkPendingRequests();
-        
-        // Send periodic data if enabled
-        if (sendData) {
-            if (current_time - last_send_time >= CommConstants::RESPONSE_UPDATE_PERIOD.count()) {
-                sendResponse(response_flags);
+            
+            // Update connection status and timestamp
+            {
+                std::lock_guard<std::mutex> lock(state_mutex);
+                connected = true;
+                last_received_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now().time_since_epoch()).count();
             }
-        }
-        
-        // Check for request timeouts
-        checkRequestTimeout();
-        
-        // Restart the timer
-        timer.expires_from_now(boost::posix_time::milliseconds(20));
-        timer.async_wait(std::bind(&BrainComm::handleTimer, this, std::placeholders::_1));
+            
+            // Update statistics
+            stats.incrementReceiveStats(true);
+            break;
+            
+        case MessageType::Handshake:
+            std::cerr << "Received handshake message" << std::endl;
+            
+            // Update connection status and timestamp
+            {
+                std::lock_guard<std::mutex> lock(state_mutex);
+                connected = true;
+                last_received_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now().time_since_epoch()).count();
+            }
+            
+            // Signal the write thread
+            {
+                std::unique_lock<std::mutex> lock(write_mutex);
+                write_condition.notify_one();
+            }
+            
+            // Respond to handshake with acknowledgment
+            sendAcknowledgment(0, 0x00);
+            
+            // Update statistics
+            stats.incrementReceiveStats(true);
+            break;
+            
+        default:
+            std::cerr << "Unknown message type: " 
+                     << static_cast<int>(header->message_type) << std::endl;
+            stats.incrementReceiveStats(false);
+            return false;
     }
-    else if (ec != boost::asio::error::operation_aborted) 
-    {
-        std::cerr << "Timer error: " << ec.message() << std::endl;
-        
-        // Restart timer with a slightly longer delay
-        timer.expires_from_now(boost::posix_time::milliseconds(100));
-        timer.async_wait(std::bind(&BrainComm::handleTimer, this, std::placeholders::_1));
-    }
-}
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-void BrainComm::checkPendingRequests() {
-    std::lock_guard<std::mutex> lock(state_mutex);
     
-    if (!request_in_progress && !pending_requests.empty()) {
-        uint16_t flags = pending_requests.front();
-        request_in_progress = true;
-        
-        // Create a copy of the flags to use after releasing the lock
-        uint16_t flags_copy = flags;
-        
-        startAsyncWrite(flags_copy,MessageType::Request);
-    }
+    return true;
 }
 
 
@@ -787,13 +809,7 @@ bool BrainComm::sendResponse(uint16_t flags) {
     std::cerr << "DEBUG: Sending response - flags: 0x" << std::hex << flags 
              << std::dec << ", payload size: " << payload_size << std::endl;
              
-    boost::asio::async_write(*serial_port, buffers,
-        std::bind(&BrainComm::handleWrite, this,
-                  std::placeholders::_1,
-                  std::placeholders::_2,
-                  false)  // false indicates this is not a request
-    );
-    
+
     return true;
 }
 
@@ -827,13 +843,6 @@ bool BrainComm::sendAcknowledgment(uint16_t flags, uint8_t status)
              << std::hex << flags << ", status: " << static_cast<int>(status) 
              << std::dec << std::endl;
              
-    // Start asynchronous write
-    boost::asio::async_write(*serial_port, buffers,
-        std::bind(&BrainComm::handleWrite, this,
-                  std::placeholders::_1,
-                  std::placeholders::_2,
-                  false)  // false indicates this is not a request
-    );
     
     return true;
 }
