@@ -33,6 +33,7 @@ int main() {
  
 
     brain.start();
+    sleep(1);
     brain.updateRequests(static_cast<uint16_t>(Brain::RequestFlag::BatteryLevel));
     // monitor.start();
  
@@ -80,7 +81,8 @@ int main() {
         // monitor.updateData(brain);
         // if (cv::waitKey(1) == 27) break;
         brain.setJetsonBattery(ups.getBatteryPercentage());
-        usleep(100000);  // 100ms refresh rate
+        cout << "Brain Battery: " << brain.getBrainBattery() << "%" << endl;
+        usleep(200000);  // 100ms refresh rate
        
         
        

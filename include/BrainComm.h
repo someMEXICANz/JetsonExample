@@ -65,7 +65,7 @@ private:
     // Message handling methods
     bool sendResponse(uint16_t flags);
     bool sendAcknowledgment(uint16_t flags, uint8_t status);
-    bool sendRequest(uint16_t flags);
+    bool sendRequests(uint16_t flags);
     bool handleMessage(const uint8_t* buffer, size_t length);
     
     // Timeout checking
@@ -106,8 +106,8 @@ private:
     std::atomic<uint32_t> last_received_time;          // Timestamp of last received data
     
     // Buffer for reading
-    std::vector<uint8_t> read_buffer;
-    size_t buffer_index;
+    // std::vector<uint8_t> read_buffer;
+    // size_t buffer_index;
     
     // Storage for Data From Brain
     Position2D left_gps_position;
@@ -115,7 +115,7 @@ private:
     Position2D right_gps_position;
     Position2D right_gps_offset;
     Position2D sister_position;
-    uint32_t brain_battery;
+    uint32_t BrainBatteryLvl;
 
     // Data to send to Brain
     MotorCommand current_motor_command;
