@@ -93,8 +93,6 @@ bool BrainComm::restart() {
 }
 
 
-
-
 bool BrainComm::reconnect() 
 {
     if (serial_port && serial_port->is_open())
@@ -169,19 +167,19 @@ void BrainComm::readLoop()
         size_t bytes_read = boost::asio::read(*serial_port, 
                             boost::asio::buffer(&read_byte, 1),ec);
     
-        // if (ec) 
-        // {
-        //     if (ec != boost::asio::error::operation_aborted ) 
-        //     {
-        //         cerr << "Read error: " << ec.message() << endl;
-        //         stats.incrementReceiveStats(false);
-        //         lock_guard<mutex> lock(state_mutex);
-        //         connected = false;
-        //     }
+        if (ec) 
+        {
+            if (ec != boost::asio::error::operation_aborted ) 
+            {
+                cerr << "Read error: " << ec.message() << endl;
+                stats.incrementReceiveStats(false);
+                lock_guard<mutex> lock(state_mutex);
+                connected = false;
+            }
 
-        //     this_thread::sleep_for(chrono::milliseconds(10));
-        //     continue;
-        // }
+            this_thread::sleep_for(chrono::milliseconds(10));
+            continue;
+        }
             
         if (bytes_read > 0) 
         {
@@ -617,7 +615,6 @@ void BrainComm::sendResponse(uint16_t flags) {
     {
         cerr << "Response sent with flags: 0x" << hex << flags 
              << dec << ", payload size: " << payload_size << endl;
-        
         last_send_time = chrono::duration_cast<chrono::milliseconds>(
                          chrono::steady_clock::now().time_since_epoch()).count();
         stats.incrementTransmitStats(true);
@@ -664,6 +661,10 @@ void BrainComm::sendAcknowledgment(uint16_t flags, uint8_t status)
     if (!ec) 
     {
         cerr << "Acknowledgment sent with flags: 0x" << hex << flags << dec << endl;
+        {
+            lock_guard<mutex> lock(data_mutex);
+            pending_acknowledgments.pop();
+        }
         stats.incrementTransmitStats(true);
     }
     else
