@@ -81,7 +81,8 @@ int main() {
         // monitor.updateData(brain);
         // if (cv::waitKey(1) == 27) break;
         brain.setJetsonBattery(ups.getBatteryPercentage());
-        cout << "Brain Battery: " << brain.getBrainBattery() << "%" << endl;
+        brain.setMotorVoltages(12,12);
+        // cout << "Brain Battery: " << brain.getBrainBattery() << "%" << endl;
         usleep(200000);  // 100ms refresh rate
        
         

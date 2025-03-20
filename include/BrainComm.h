@@ -6,10 +6,9 @@
 #include <boost/asio.hpp>
 #include <thread>
 #include <mutex>
-#include <atomic>
 #include <iostream>
 #include <queue>
-#include <condition_variable>
+
 
 namespace Brain {
 
@@ -63,9 +62,9 @@ private:
     bool processReceivedData(uint16_t flags, const uint8_t* data, uint16_t length);
     
     // Message handling methods
-    bool sendResponse(uint16_t flags);
-    bool sendAcknowledgment(uint16_t flags, uint8_t status);
-    bool sendRequests(uint16_t flags);
+    void sendResponse(uint16_t flags);
+    void sendAcknowledgment(uint16_t flags, uint8_t status);
+    void sendRequests(uint16_t flags);
     bool handleMessage(const uint8_t* buffer, size_t length);
     
     // Timeout checking
@@ -75,35 +74,33 @@ private:
     std::string port;
     boost::asio::io_service& io_service;
     std::unique_ptr<boost::asio::serial_port> serial_port;
-    std::atomic<bool> connected{false};
+    bool connected{false};
     
     // Thread management
     std::unique_ptr<std::thread> read_thread;
     std::unique_ptr<std::thread> write_thread;
-
-    // Synchronization
-    std::condition_variable write_condition;
-    
     // State variables
-    std::atomic<bool> running{false};
+
+    bool running{false};
     
     // Mutexes for thread safety
     mutable std::mutex data_mutex;
     std::mutex state_mutex;
-    std::mutex write_mutex;
+
 
     // Request management
     std::queue<uint16_t> pending_requests;
-    std::atomic<bool> request_in_progress{false};
-    std::atomic<uint32_t> last_request_time;
-    std::atomic<uint8_t> request_retry_count;
+    std::queue<uint16_t> pending_acknowledgments;
+    bool request_in_progress{false};
+    uint32_t last_request_time;
+    uint8_t request_retry_count;
     
     // Communication state
-    std::atomic<uint16_t> request_flags;                // Current Jetson request flags
-    std::atomic<uint16_t> response_flags; 
-    std::atomic<bool> sendData{false};
-    std::atomic<uint32_t> last_send_time;              // Timestamp of last data send
-    std::atomic<uint32_t> last_received_time;          // Timestamp of last received data
+    uint16_t request_flags;                 // Current Jetson request flags
+    uint16_t response_flags;                // Current Brain request flags
+    bool sendData{false};
+    uint32_t last_send_time;                // Timestamp of last data send
+    uint32_t last_received_time;            // Timestamp of last received data
     
     // Buffer for reading
     // std::vector<uint8_t> read_buffer;
