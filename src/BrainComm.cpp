@@ -16,7 +16,6 @@ BrainComm::BrainComm(boost::asio::io_service& service, const string& usb_port)
     , response_flags(static_cast<uint16_t>(RequestFlag::NoData))
     , request_in_progress(false)
     , request_retry_count(0)
-    , sendData(false)
     , last_send_time(0)
     , last_received_time(0)
     , last_request_time(0)
@@ -50,11 +49,11 @@ BrainComm::~BrainComm()
 bool BrainComm::start() {
     if (running) return true;
     
-    if (!connected && !reconnect()) {
+    if (!connected && !reconnect()) 
+    {
         return false;
     }
  
-    
     read_thread = make_unique<thread>(&BrainComm::readLoop, this);
     write_thread = make_unique<thread>(&BrainComm::writeLoop, this);
     running = true;
@@ -63,13 +62,13 @@ bool BrainComm::start() {
 
 void BrainComm::stop() 
 {
-    running = false;
+    
     
     // Cancel any pending operations on the serial port
     if (serial_port && serial_port->is_open()) {
         serial_port->cancel();
     }
-    
+    running = false;
     // Wait for threads to finish
     if (read_thread && read_thread->joinable()) {
         read_thread->join();
@@ -145,7 +144,6 @@ bool BrainComm::updateRequests(uint16_t flags)
 void BrainComm::readLoop() 
 {
     cerr << "Read thread started" << endl;
-    boost::asio::deadline_timer timer(io_service);
     vector<uint8_t> buffer(CommConstants::MAX_BUFFER_SIZE);
     size_t buffer_index = 0;
     
@@ -304,9 +302,6 @@ void BrainComm::writeLoop()
         send_data = false;
         send_acknowledgment = false;
 
-        current_time = chrono::duration_cast<std::chrono::milliseconds>(
-                       chrono::steady_clock::now().time_since_epoch()).count();
-
         if (!connected) 
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -342,7 +337,6 @@ void BrainComm::writeLoop()
                 current_acknocknowledgment = pending_acknowledgments.front();
                 send_acknowledgment = true;
             }
-            state_mutex.unlock();
         }
             
         if(send_request)
@@ -354,8 +348,11 @@ void BrainComm::writeLoop()
         {
             sendAcknowledgment(current_acknocknowledgment, 0x00);
         }
+
+        current_time = chrono::duration_cast<std::chrono::milliseconds>(
+                       chrono::steady_clock::now().time_since_epoch()).count();
         
-        if(send_data)
+        if(send_data && (current_time - last_request_time >= CommConstants::RESPONSE_UPDATE_PERIOD))
         {
             sendResponse(current_response);
         }
@@ -384,7 +381,8 @@ bool BrainComm::handleMessage(const uint8_t* buffer, size_t length) {
     
     // Verify start marker
     if (header->start_marker[0] != CommConstants::START_MARKER_1 || 
-        header->start_marker[1] != CommConstants::START_MARKER_2) {
+        header->start_marker[1] != CommConstants::START_MARKER_2) 
+    {
         std::cerr << "Invalid start marker in message" << std::endl;
         return false;
     }
@@ -401,7 +399,8 @@ bool BrainComm::handleMessage(const uint8_t* buffer, size_t length) {
         buffer + sizeof(RequestHeader) + header->length);
         
     if (end->marker[0] != CommConstants::END_MARKER_1 || 
-        end->marker[1] != CommConstants::END_MARKER_2) {
+        end->marker[1] != CommConstants::END_MARKER_2) 
+    {
         std::cerr << "Invalid end marker in message" << std::endl;
         return false;
     }
@@ -412,6 +411,7 @@ bool BrainComm::handleMessage(const uint8_t* buffer, size_t length) {
     
     switch (msg_type) {
         case MessageType::Request:
+
             std::cerr << "Received request message with flags: 0x" 
                      << std::hex << flags << std::dec << std::endl;
             
@@ -426,7 +426,7 @@ bool BrainComm::handleMessage(const uint8_t* buffer, size_t length) {
             break;
             
         case MessageType::Acknowledgment:
-          
+
             std::cerr << "Received acknowledgment message for flags: 0x" 
                       << std::hex << flags << dec << endl;
                 

@@ -67,44 +67,34 @@ private:
     void sendRequests(uint16_t flags);
     bool handleMessage(const uint8_t* buffer, size_t length);
     
-    // Timeout checking
-    void checkRequestTimeout();
-
     // Serial Port variables
     std::string port;
     boost::asio::io_service& io_service;
     std::unique_ptr<boost::asio::serial_port> serial_port;
-    bool connected{false};
+    bool connected;
+    bool running;
     
     // Thread management
     std::unique_ptr<std::thread> read_thread;
     std::unique_ptr<std::thread> write_thread;
     // State variables
 
-    bool running{false};
-    
     // Mutexes for thread safety
     mutable std::mutex data_mutex;
     std::mutex state_mutex;
 
-
     // Request management
     std::queue<uint16_t> pending_requests;
     std::queue<uint16_t> pending_acknowledgments;
-    bool request_in_progress{false};
+    bool request_in_progress;
     uint32_t last_request_time;
     uint8_t request_retry_count;
     
     // Communication state
     uint16_t request_flags;                 // Current Jetson request flags
     uint16_t response_flags;                // Current Brain request flags
-    bool sendData{false};
     uint32_t last_send_time;                // Timestamp of last data send
     uint32_t last_received_time;            // Timestamp of last received data
-    
-    // Buffer for reading
-    // std::vector<uint8_t> read_buffer;
-    // size_t buffer_index;
     
     // Storage for Data From Brain
     Position2D left_gps_position;
