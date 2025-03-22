@@ -43,9 +43,9 @@ public:
 
     // Statistics and error handling
     const StatsManager& getStats() const { return stats; }
+    StatsManager& getStats() { return stats; }
     uint16_t getCurrentResponse() const { return response_flags; }
     uint16_t getCurrentRequests() const { return request_flags; }
-    bool isTransmitting() const { return sendData; }
 
     // Status checks
     bool isConnected() const { return connected; }

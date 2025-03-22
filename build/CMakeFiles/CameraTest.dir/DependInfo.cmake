@@ -7,7 +7,6 @@ set(CMAKE_DEPENDS_CHECK_CXX
   "/home/robolabs/JetsonExample/src/BrainComm.cpp" "/home/robolabs/JetsonExample/build/CMakeFiles/CameraTest.dir/src/BrainComm.cpp.o"
   "/home/robolabs/JetsonExample/src/BrainCommStats.cpp" "/home/robolabs/JetsonExample/build/CMakeFiles/CameraTest.dir/src/BrainCommStats.cpp.o"
   "/home/robolabs/JetsonExample/src/Camera.cpp" "/home/robolabs/JetsonExample/build/CMakeFiles/CameraTest.dir/src/Camera.cpp.o"
-  "/home/robolabs/JetsonExample/src/CommsMonitor.cpp" "/home/robolabs/JetsonExample/build/CMakeFiles/CameraTest.dir/src/CommsMonitor.cpp.o"
   "/home/robolabs/JetsonExample/src/GPS.cpp" "/home/robolabs/JetsonExample/build/CMakeFiles/CameraTest.dir/src/GPS.cpp.o"
   "/home/robolabs/JetsonExample/src/IMU.cpp" "/home/robolabs/JetsonExample/build/CMakeFiles/CameraTest.dir/src/IMU.cpp.o"
   "/home/robolabs/JetsonExample/src/Model.cpp" "/home/robolabs/JetsonExample/build/CMakeFiles/CameraTest.dir/src/Model.cpp.o"

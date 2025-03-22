@@ -41,11 +41,6 @@
 },
 {
   "directory": "/home/robolabs/JetsonExample/build",
-  "command": "/usr/bin/aarch64-linux-gnu-g++  -DEIGEN_USE_THREADS -I/usr/local/cuda/include -I/usr/include/eigen3 -I/home/robolabs/JetsonExample/include -isystem /usr/local/include/opencv4 -I/usr/local/include  -g   -Wno-deprecated-declarations -std=gnu++1z -o CMakeFiles/CameraTest.dir/src/CommsMonitor.cpp.o -c /home/robolabs/JetsonExample/src/CommsMonitor.cpp",
-  "file": "/home/robolabs/JetsonExample/src/CommsMonitor.cpp"
-},
-{
-  "directory": "/home/robolabs/JetsonExample/build",
   "command": "/usr/bin/aarch64-linux-gnu-g++  -DEIGEN_USE_THREADS -I/usr/local/cuda/include -I/usr/include/eigen3 -I/home/robolabs/JetsonExample/include -isystem /usr/local/include/opencv4 -I/usr/local/include  -g   -Wno-deprecated-declarations -std=gnu++1z -o CMakeFiles/CameraTest.dir/src/IMU.cpp.o -c /home/robolabs/JetsonExample/src/IMU.cpp",
   "file": "/home/robolabs/JetsonExample/src/IMU.cpp"
 },

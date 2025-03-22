@@ -17,8 +17,6 @@ thread
 -
 mutex
 -
-atomic
--
 iostream
 -
 queue
@@ -54,20 +52,6 @@ stdexcept
 iostream
 -
 ObjectDetection.h
--
-
-../include/CommsMonitor.h
-BrainComm.h
-../include/BrainComm.h
-opencv2/opencv.hpp
--
-thread
--
-mutex
--
-atomic
--
-vector
 -
 
 ../include/GPS.h
@@ -198,14 +182,6 @@ algorithm
 Camera.h
 -
 
-/home/robolabs/JetsonExample/src/CommsMonitor.cpp
-CommsMonitor.h
-/home/robolabs/JetsonExample/src/CommsMonitor.h
-sstream
--
-iomanip
--
-
 /home/robolabs/JetsonExample/src/GPS.cpp
 GPS.h
 -
@@ -270,8 +246,6 @@ IMU.h
 iostream
 -
 BrainComm.h
--
-CommsMonitor.h
 -
 UPS.h
 -

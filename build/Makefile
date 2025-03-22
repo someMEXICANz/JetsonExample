@@ -204,33 +204,6 @@ src/Camera.cpp.s:
 	$(MAKE) -f CMakeFiles/CameraTest.dir/build.make CMakeFiles/CameraTest.dir/src/Camera.cpp.s
 .PHONY : src/Camera.cpp.s
 
-src/CommsMonitor.o: src/CommsMonitor.cpp.o
-
-.PHONY : src/CommsMonitor.o
-
-# target to build an object file
-src/CommsMonitor.cpp.o:
-	$(MAKE) -f CMakeFiles/CameraTest.dir/build.make CMakeFiles/CameraTest.dir/src/CommsMonitor.cpp.o
-.PHONY : src/CommsMonitor.cpp.o
-
-src/CommsMonitor.i: src/CommsMonitor.cpp.i
-
-.PHONY : src/CommsMonitor.i
-
-# target to preprocess a source file
-src/CommsMonitor.cpp.i:
-	$(MAKE) -f CMakeFiles/CameraTest.dir/build.make CMakeFiles/CameraTest.dir/src/CommsMonitor.cpp.i
-.PHONY : src/CommsMonitor.cpp.i
-
-src/CommsMonitor.s: src/CommsMonitor.cpp.s
-
-.PHONY : src/CommsMonitor.s
-
-# target to generate assembly for a file
-src/CommsMonitor.cpp.s:
-	$(MAKE) -f CMakeFiles/CameraTest.dir/build.make CMakeFiles/CameraTest.dir/src/CommsMonitor.cpp.s
-.PHONY : src/CommsMonitor.cpp.s
-
 src/GPS.o: src/GPS.cpp.o
 
 .PHONY : src/GPS.o
@@ -438,9 +411,6 @@ help:
 	@echo "... src/Camera.o"
 	@echo "... src/Camera.i"
 	@echo "... src/Camera.s"
-	@echo "... src/CommsMonitor.o"
-	@echo "... src/CommsMonitor.i"
-	@echo "... src/CommsMonitor.s"
 	@echo "... src/GPS.o"
 	@echo "... src/GPS.i"
 	@echo "... src/GPS.s"

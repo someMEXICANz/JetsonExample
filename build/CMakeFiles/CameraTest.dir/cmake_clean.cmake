@@ -7,7 +7,6 @@ file(REMOVE_RECURSE
   "CMakeFiles/CameraTest.dir/src/Position.cpp.o"
   "CMakeFiles/CameraTest.dir/src/BrainCommStats.cpp.o"
   "CMakeFiles/CameraTest.dir/src/BrainComm.cpp.o"
-  "CMakeFiles/CameraTest.dir/src/CommsMonitor.cpp.o"
   "CMakeFiles/CameraTest.dir/src/IMU.cpp.o"
   "CMakeFiles/CameraTest.dir/src/UPS.cpp.o"
   "CameraTest.pdb"

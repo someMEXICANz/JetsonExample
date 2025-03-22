@@ -307,29 +307,40 @@ void BrainComm::writeLoop()
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
         }
+
+        current_time = chrono::duration_cast<std::chrono::milliseconds>(
+                        chrono::steady_clock::now().time_since_epoch()).count();
         
         {
             std::lock_guard<std::mutex> lock(state_mutex);
-            if(!request_in_progress)
+            if((current_time - last_request_time  >= CommConstants::REQUEST_RETRY_PERIOD.count()))
             {
-                if (!pending_requests.empty()) 
+                if(!request_in_progress)
+                {
+                    if (!pending_requests.empty()) 
+                    {
+                        current_request = pending_requests.front();
+                        send_request = true;
+                        request_in_progress = true;
+                    }
+                }
+
+                else 
                 {
                     current_request = pending_requests.front();
                     send_request = true;
-                    request_in_progress = true;
                 }
-            }
-
-            else 
-            {
-                current_request = pending_requests.front();
-                send_request = true;
             }
             
             if(response_flags != static_cast<uint16_t>(Brain::RequestFlag::NoData))
             {
                 current_response = response_flags;
                 send_data = true;
+            }
+            else 
+            {
+                current_response = response_flags;
+                send_data = false;
             }
 
             if(!pending_acknowledgments.empty())
@@ -352,7 +363,7 @@ void BrainComm::writeLoop()
         current_time = chrono::duration_cast<std::chrono::milliseconds>(
                        chrono::steady_clock::now().time_since_epoch()).count();
         
-        if(send_data && (current_time - last_request_time >= CommConstants::RESPONSE_UPDATE_PERIOD))
+        if(send_data && (current_time - last_request_time >= CommConstants::RESPONSE_UPDATE_PERIOD.count()))
         {
             sendResponse(current_response);
         }
@@ -523,6 +534,7 @@ void BrainComm::sendRequests(uint16_t flags)
                         << dec << ")" << endl;
                     pending_requests.pop();
                     request_in_progress = false;
+                    request_retry_count = 0;
                 }
             }
         }
@@ -613,8 +625,8 @@ void BrainComm::sendResponse(uint16_t flags) {
 
     if (!ec) 
     {
-        cerr << "Response sent with flags: 0x" << hex << flags 
-             << dec << ", payload size: " << payload_size << endl;
+        // cerr << "Response sent with flags: 0x" << hex << flags 
+        //      << dec << ", payload size: " << payload_size << endl;
         last_send_time = chrono::duration_cast<chrono::milliseconds>(
                          chrono::steady_clock::now().time_since_epoch()).count();
         stats.incrementTransmitStats(true);

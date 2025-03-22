@@ -39,6 +39,7 @@ public:
 
     // Statistics
     const TransmitStats& getTransmitStats() const { return tx_stats; }
+    TransmitStats& getTransmitStats()  { return tx_stats; }
     const ReceiveStats& getReceiveStats() const { return rx_stats; }
     void clearStats();
     

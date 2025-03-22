@@ -62,6 +62,7 @@ struct CommConstants {
     static constexpr std::chrono::milliseconds READ_TIMEOUT{500};
     static constexpr std::chrono::milliseconds RETRY_DELAY{100};
     static constexpr std::chrono::milliseconds RESPONSE_UPDATE_PERIOD{20};  // 50Hz
+    static constexpr std::chrono::milliseconds REQUEST_RETRY_PERIOD{500};  
     static constexpr std::chrono::milliseconds RECONNECT_DELAY{2500} ;
     static constexpr size_t MAX_REQUEST_RETRIES = 5;
     static constexpr size_t MAX_ERROR_LOG = 100;

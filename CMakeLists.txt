@@ -53,7 +53,6 @@ add_executable(CameraTest
     src/Position.cpp
     src/BrainCommStats.cpp
     src/BrainComm.cpp
-    src/CommsMonitor.cpp
     src/IMU.cpp
     src/UPS.cpp
 )
