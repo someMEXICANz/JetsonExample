@@ -51,6 +51,7 @@ add_executable(CameraTest
     src/ObjectDetection.cpp
     src/GPS.cpp
     src/Position.cpp
+    src/RobotPosition.cpp
     src/BrainCommStats.cpp
     src/BrainComm.cpp
     src/IMU.cpp

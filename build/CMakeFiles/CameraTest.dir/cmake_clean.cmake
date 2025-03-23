@@ -5,6 +5,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/CameraTest.dir/src/ObjectDetection.cpp.o"
   "CMakeFiles/CameraTest.dir/src/GPS.cpp.o"
   "CMakeFiles/CameraTest.dir/src/Position.cpp.o"
+  "CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o"
   "CMakeFiles/CameraTest.dir/src/BrainCommStats.cpp.o"
   "CMakeFiles/CameraTest.dir/src/BrainComm.cpp.o"
   "CMakeFiles/CameraTest.dir/src/IMU.cpp.o"

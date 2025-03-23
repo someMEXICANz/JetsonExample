@@ -726,10 +726,10 @@ bool BrainComm::processReceivedData(uint16_t flags, const uint8_t* data, uint16_
                 memcpy(&left_gps_offset, data + offset, sizeof(Position2D));
                 offset += sizeof(Position2D);
                 
-                cerr << "Received left GPS position: (" 
-                     << left_gps_position.x << ", " 
-                     << left_gps_position.y << ", " 
-                     << left_gps_position.heading << ")" << endl;
+                // cerr << "Received left GPS position: (" 
+                //      << left_gps_position.x << ", " 
+                //      << left_gps_position.y << ", " 
+                //      << left_gps_position.heading << ")" << endl;
             }
         }
     }
@@ -745,10 +745,10 @@ bool BrainComm::processReceivedData(uint16_t flags, const uint8_t* data, uint16_
                 memcpy(&right_gps_offset, data + offset, sizeof(Position2D));
                 offset += sizeof(Position2D);
                 
-                cerr << "Received right GPS position: (" 
-                     << right_gps_position.x << ", " 
-                     << right_gps_position.y << ", " 
-                     << right_gps_position.heading << ")" << endl;
+                // cerr << "Received right GPS position: (" 
+                //      << right_gps_position.x << ", " 
+                //      << right_gps_position.y << ", " 
+                //      << right_gps_position.heading << ")" << endl;
             }
         }
     }
@@ -759,10 +759,10 @@ bool BrainComm::processReceivedData(uint16_t flags, const uint8_t* data, uint16_
             memcpy(&sister_position, data + offset, sizeof(Position2D));
             offset += sizeof(Position2D);
             
-            cerr << "Received sister position: (" 
-                 << sister_position.x << ", " 
-                 << sister_position.y << ", " 
-                 << sister_position.heading << ")" << endl;
+            // cerr << "Received sister position: (" 
+            //      << sister_position.x << ", " 
+            //      << sister_position.y << ", " 
+            //      << sister_position.heading << ")" << endl;
         }
     }
     
@@ -773,8 +773,8 @@ bool BrainComm::processReceivedData(uint16_t flags, const uint8_t* data, uint16_
             memcpy(&BrainBatteryLvl, data + offset, sizeof(uint32_t));
             offset += sizeof(uint32_t);
             
-            cerr << "Received Brain battery level: " 
-                 << BrainBatteryLvl << "%" << endl;
+            // cerr << "Received Brain battery level: " 
+            //      << BrainBatteryLvl << "%" << endl;
         }
     }
 

@@ -339,6 +339,33 @@ src/Position.cpp.s:
 	$(MAKE) -f CMakeFiles/CameraTest.dir/build.make CMakeFiles/CameraTest.dir/src/Position.cpp.s
 .PHONY : src/Position.cpp.s
 
+src/RobotPosition.o: src/RobotPosition.cpp.o
+
+.PHONY : src/RobotPosition.o
+
+# target to build an object file
+src/RobotPosition.cpp.o:
+	$(MAKE) -f CMakeFiles/CameraTest.dir/build.make CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o
+.PHONY : src/RobotPosition.cpp.o
+
+src/RobotPosition.i: src/RobotPosition.cpp.i
+
+.PHONY : src/RobotPosition.i
+
+# target to preprocess a source file
+src/RobotPosition.cpp.i:
+	$(MAKE) -f CMakeFiles/CameraTest.dir/build.make CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.i
+.PHONY : src/RobotPosition.cpp.i
+
+src/RobotPosition.s: src/RobotPosition.cpp.s
+
+.PHONY : src/RobotPosition.s
+
+# target to generate assembly for a file
+src/RobotPosition.cpp.s:
+	$(MAKE) -f CMakeFiles/CameraTest.dir/build.make CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.s
+.PHONY : src/RobotPosition.cpp.s
+
 src/UPS.o: src/UPS.cpp.o
 
 .PHONY : src/UPS.o
@@ -426,6 +453,9 @@ help:
 	@echo "... src/Position.o"
 	@echo "... src/Position.i"
 	@echo "... src/Position.s"
+	@echo "... src/RobotPosition.o"
+	@echo "... src/RobotPosition.i"
+	@echo "... src/RobotPosition.s"
 	@echo "... src/UPS.o"
 	@echo "... src/UPS.i"
 	@echo "... src/UPS.s"

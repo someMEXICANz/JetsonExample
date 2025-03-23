@@ -201,9 +201,33 @@ CMakeFiles/CameraTest.dir/src/Position.cpp.o.provides: CMakeFiles/CameraTest.dir
 CMakeFiles/CameraTest.dir/src/Position.cpp.o.provides.build: CMakeFiles/CameraTest.dir/src/Position.cpp.o
 
 
+CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o: CMakeFiles/CameraTest.dir/flags.make
+CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o: ../src/RobotPosition.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/robolabs/JetsonExample/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o"
+	/usr/bin/aarch64-linux-gnu-g++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o -c /home/robolabs/JetsonExample/src/RobotPosition.cpp
+
+CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.i"
+	/usr/bin/aarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/robolabs/JetsonExample/src/RobotPosition.cpp > CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.i
+
+CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.s"
+	/usr/bin/aarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/robolabs/JetsonExample/src/RobotPosition.cpp -o CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.s
+
+CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o.requires:
+
+.PHONY : CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o.requires
+
+CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o.provides: CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o.requires
+	$(MAKE) -f CMakeFiles/CameraTest.dir/build.make CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o.provides.build
+.PHONY : CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o.provides
+
+CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o.provides.build: CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o
+
+
 CMakeFiles/CameraTest.dir/src/BrainCommStats.cpp.o: CMakeFiles/CameraTest.dir/flags.make
 CMakeFiles/CameraTest.dir/src/BrainCommStats.cpp.o: ../src/BrainCommStats.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/robolabs/JetsonExample/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/CameraTest.dir/src/BrainCommStats.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/robolabs/JetsonExample/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/CameraTest.dir/src/BrainCommStats.cpp.o"
 	/usr/bin/aarch64-linux-gnu-g++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/CameraTest.dir/src/BrainCommStats.cpp.o -c /home/robolabs/JetsonExample/src/BrainCommStats.cpp
 
 CMakeFiles/CameraTest.dir/src/BrainCommStats.cpp.i: cmake_force
@@ -227,7 +251,7 @@ CMakeFiles/CameraTest.dir/src/BrainCommStats.cpp.o.provides.build: CMakeFiles/Ca
 
 CMakeFiles/CameraTest.dir/src/BrainComm.cpp.o: CMakeFiles/CameraTest.dir/flags.make
 CMakeFiles/CameraTest.dir/src/BrainComm.cpp.o: ../src/BrainComm.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/robolabs/JetsonExample/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/CameraTest.dir/src/BrainComm.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/robolabs/JetsonExample/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/CameraTest.dir/src/BrainComm.cpp.o"
 	/usr/bin/aarch64-linux-gnu-g++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/CameraTest.dir/src/BrainComm.cpp.o -c /home/robolabs/JetsonExample/src/BrainComm.cpp
 
 CMakeFiles/CameraTest.dir/src/BrainComm.cpp.i: cmake_force
@@ -251,7 +275,7 @@ CMakeFiles/CameraTest.dir/src/BrainComm.cpp.o.provides.build: CMakeFiles/CameraT
 
 CMakeFiles/CameraTest.dir/src/IMU.cpp.o: CMakeFiles/CameraTest.dir/flags.make
 CMakeFiles/CameraTest.dir/src/IMU.cpp.o: ../src/IMU.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/robolabs/JetsonExample/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/CameraTest.dir/src/IMU.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/robolabs/JetsonExample/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/CameraTest.dir/src/IMU.cpp.o"
 	/usr/bin/aarch64-linux-gnu-g++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/CameraTest.dir/src/IMU.cpp.o -c /home/robolabs/JetsonExample/src/IMU.cpp
 
 CMakeFiles/CameraTest.dir/src/IMU.cpp.i: cmake_force
@@ -275,7 +299,7 @@ CMakeFiles/CameraTest.dir/src/IMU.cpp.o.provides.build: CMakeFiles/CameraTest.di
 
 CMakeFiles/CameraTest.dir/src/UPS.cpp.o: CMakeFiles/CameraTest.dir/flags.make
 CMakeFiles/CameraTest.dir/src/UPS.cpp.o: ../src/UPS.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/robolabs/JetsonExample/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/CameraTest.dir/src/UPS.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/robolabs/JetsonExample/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/CameraTest.dir/src/UPS.cpp.o"
 	/usr/bin/aarch64-linux-gnu-g++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/CameraTest.dir/src/UPS.cpp.o -c /home/robolabs/JetsonExample/src/UPS.cpp
 
 CMakeFiles/CameraTest.dir/src/UPS.cpp.i: cmake_force
@@ -305,6 +329,7 @@ CameraTest_OBJECTS = \
 "CMakeFiles/CameraTest.dir/src/ObjectDetection.cpp.o" \
 "CMakeFiles/CameraTest.dir/src/GPS.cpp.o" \
 "CMakeFiles/CameraTest.dir/src/Position.cpp.o" \
+"CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o" \
 "CMakeFiles/CameraTest.dir/src/BrainCommStats.cpp.o" \
 "CMakeFiles/CameraTest.dir/src/BrainComm.cpp.o" \
 "CMakeFiles/CameraTest.dir/src/IMU.cpp.o" \
@@ -319,6 +344,7 @@ CameraTest: CMakeFiles/CameraTest.dir/src/Model.cpp.o
 CameraTest: CMakeFiles/CameraTest.dir/src/ObjectDetection.cpp.o
 CameraTest: CMakeFiles/CameraTest.dir/src/GPS.cpp.o
 CameraTest: CMakeFiles/CameraTest.dir/src/Position.cpp.o
+CameraTest: CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o
 CameraTest: CMakeFiles/CameraTest.dir/src/BrainCommStats.cpp.o
 CameraTest: CMakeFiles/CameraTest.dir/src/BrainComm.cpp.o
 CameraTest: CMakeFiles/CameraTest.dir/src/IMU.cpp.o
@@ -388,7 +414,7 @@ CameraTest: /usr/local/lib/libopencv_cudaarithm.so.4.1.1
 CameraTest: /usr/local/lib/libopencv_core.so.4.1.1
 CameraTest: /usr/local/lib/libopencv_cudev.so.4.1.1
 CameraTest: CMakeFiles/CameraTest.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/robolabs/JetsonExample/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Linking CXX executable CameraTest"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/robolabs/JetsonExample/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Linking CXX executable CameraTest"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/CameraTest.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -402,6 +428,7 @@ CMakeFiles/CameraTest.dir/requires: CMakeFiles/CameraTest.dir/src/Model.cpp.o.re
 CMakeFiles/CameraTest.dir/requires: CMakeFiles/CameraTest.dir/src/ObjectDetection.cpp.o.requires
 CMakeFiles/CameraTest.dir/requires: CMakeFiles/CameraTest.dir/src/GPS.cpp.o.requires
 CMakeFiles/CameraTest.dir/requires: CMakeFiles/CameraTest.dir/src/Position.cpp.o.requires
+CMakeFiles/CameraTest.dir/requires: CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o.requires
 CMakeFiles/CameraTest.dir/requires: CMakeFiles/CameraTest.dir/src/BrainCommStats.cpp.o.requires
 CMakeFiles/CameraTest.dir/requires: CMakeFiles/CameraTest.dir/src/BrainComm.cpp.o.requires
 CMakeFiles/CameraTest.dir/requires: CMakeFiles/CameraTest.dir/src/IMU.cpp.o.requires

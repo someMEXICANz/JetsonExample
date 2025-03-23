@@ -31,6 +31,11 @@
 },
 {
   "directory": "/home/robolabs/JetsonExample/build",
+  "command": "/usr/bin/aarch64-linux-gnu-g++  -DEIGEN_USE_THREADS -I/usr/local/cuda/include -I/usr/include/eigen3 -I/home/robolabs/JetsonExample/include -isystem /usr/local/include/opencv4 -I/usr/local/include  -g   -Wno-deprecated-declarations -std=gnu++1z -o CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o -c /home/robolabs/JetsonExample/src/RobotPosition.cpp",
+  "file": "/home/robolabs/JetsonExample/src/RobotPosition.cpp"
+},
+{
+  "directory": "/home/robolabs/JetsonExample/build",
   "command": "/usr/bin/aarch64-linux-gnu-g++  -DEIGEN_USE_THREADS -I/usr/local/cuda/include -I/usr/include/eigen3 -I/home/robolabs/JetsonExample/include -isystem /usr/local/include/opencv4 -I/usr/local/include  -g   -Wno-deprecated-declarations -std=gnu++1z -o CMakeFiles/CameraTest.dir/src/BrainCommStats.cpp.o -c /home/robolabs/JetsonExample/src/BrainCommStats.cpp",
   "file": "/home/robolabs/JetsonExample/src/BrainCommStats.cpp"
 },

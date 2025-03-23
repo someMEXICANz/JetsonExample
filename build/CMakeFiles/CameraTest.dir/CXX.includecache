@@ -63,33 +63,33 @@ boost/asio/read_until.hpp
 -
 boost/asio/deadline_timer.hpp
 -
-boost/circular_buffer.hpp
--
 thread
 -
 mutex
 -
 vector
 -
-optional
--
 chrono
 -
-cmath
--
 cstring
--
-iomanip
 -
 iostream
 -
 Position.h
--
+../include/Position.h
 
 ../include/IMU.h
 string
 -
 cstdint
+-
+thread
+-
+mutex
+-
+atomic
+-
+chrono
 -
 
 ../include/Model.h
@@ -160,6 +160,28 @@ chrono
 iomanip
 -
 
+../include/RobotPosition.h
+memory
+-
+mutex
+-
+thread
+-
+atomic
+-
+chrono
+-
+deque
+-
+GPS.h
+../include/GPS.h
+IMU.h
+../include/IMU.h
+BrainComm.h
+../include/BrainComm.h
+Position.h
+../include/Position.h
+
 ../include/UPS.h
 string
 -
@@ -184,9 +206,23 @@ Camera.h
 
 /home/robolabs/JetsonExample/src/GPS.cpp
 GPS.h
--
+/home/robolabs/JetsonExample/src/GPS.h
 
 /home/robolabs/JetsonExample/src/IMU.cpp
+IMU.h
+/home/robolabs/JetsonExample/src/IMU.h
+iostream
+-
+fcntl.h
+-
+unistd.h
+-
+sys/ioctl.h
+-
+linux/i2c-dev.h
+-
+cstring
+-
 IMU.h
 /home/robolabs/JetsonExample/src/IMU.h
 iostream
@@ -212,7 +248,13 @@ ObjectDetection.h
 
 /home/robolabs/JetsonExample/src/Position.cpp
 Position.h
--
+/home/robolabs/JetsonExample/src/Position.h
+
+/home/robolabs/JetsonExample/src/RobotPosition.cpp
+RobotPosition.h
+/home/robolabs/JetsonExample/src/RobotPosition.h
+PortDetector.h
+/home/robolabs/JetsonExample/src/PortDetector.h
 
 /home/robolabs/JetsonExample/src/UPS.cpp
 UPS.h
@@ -247,9 +289,9 @@ iostream
 -
 BrainComm.h
 -
-UPS.h
+RobotPosition.h
 -
-iostream
+UPS.h
 -
 random
 -

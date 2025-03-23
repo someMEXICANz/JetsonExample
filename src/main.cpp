@@ -7,8 +7,8 @@
 #include <iostream>
 #include <BrainComm.h>
 //#include <CommsMonitor.h>
+#include <RobotPosition.h>
 #include <UPS.h>
-#include <iostream>
 #include <random>
 #include <chrono>
 
@@ -23,9 +23,9 @@ void printIMUdata(IMU &imu)
            mx, my, mz,                                           // Magnetometer data
            temperature;                                          // Temperature data
 
-
     // Read all sensor data
-    if (imu.readAll(ax, ay, az, gx, gy, gz, mx, my, mz, temperature)) {
+    if (imu.readAll(ax, ay, az, gx, gy, gz, mx, my, mz, temperature)) 
+    {
         std::cout << "--------------------------------------------" << std::endl;
         // Display IMU Data
         std::cout << "Accel (g):  X: " << ax << "  Y: " << ay << "  Z: " << az << std::endl;    // Accelerometer data in g
@@ -34,7 +34,8 @@ void printIMUdata(IMU &imu)
         std::cout << "Temperature: " << temperature << " °C" << std::endl;                      // Temperature in Celsius
          std::cout << "--------------------------------------------" << std::endl;
     } 
-    else {
+    else 
+    {
          std::cout << "--------------------------------------------" << std::endl;
         std::cerr << "Error reading sensor data: " << imu.getLastError() << std::endl;
          std::cout << "--------------------------------------------" << std::endl;
@@ -43,12 +44,12 @@ void printIMUdata(IMU &imu)
 
 void printUPSdata(UPS &ups)
 {
-      //Get voltage and current measurements
-        float bus_voltage = ups.getBusVoltage_V();              // voltage on V- (load side)
-        float shunt_voltage = ups.getShuntVoltage_mV() / 1000;  // voltage between V+ and V- across the shunt (in V)
-        float current = ups.getCurrent_mA();                    // current in mA
-        float power = ups.getPower_W();                         // power in W
-        float percentage = ups.getBatteryPercentage();          // battery percentage
+    //Get voltage and current measurements
+    float bus_voltage = ups.getBusVoltage_V();              // voltage on V- (load side)
+    float shunt_voltage = ups.getShuntVoltage_mV() / 1000;  // voltage between V+ and V- across the shunt (in V)
+    float current = ups.getCurrent_mA();                    // current in mA
+    float power = ups.getPower_W();                         // power in W
+    float percentage = ups.getBatteryPercentage();          // battery percentage
 
 
      std::cout << "--------------------------------------------" << std::endl;
@@ -58,14 +59,23 @@ void printUPSdata(UPS &ups)
     std::cout << "Current:       " << (current / 1000.0f) << " A" << std::endl;
     std::cout << "Power:         " << power << " W" << std::endl;
     std::cout << "Percent:       " << percentage << "%" << std::endl;
-     std::cout << "--------------------------------------------" << std::endl;
-
-
+    std::cout << "--------------------------------------------" << std::endl;
 }
 
+void printPositionData(RobotPosition &pos)
+{
 
+    Position position = pos.getPosition();
+    float velocity = pos.getVelocity();
+    std::cout << "--------------------------------------------" << std::endl;
+    // Print current position data
+    std::cout << "Position: (" << position.x << ", " << position.y 
+                << "), Heading: " << position.azimuth 
+                << "°, Confidence: " << position.confidence 
+                << ", Velocity: " << velocity << " m/s" << std::endl;
+    std::cout << "--------------------------------------------" << std::endl;
 
-
+}
 
 
 int main() {
@@ -75,11 +85,12 @@ int main() {
 
     IMU imu;
     imu.initialize();
+    imu.start();
 
 
     imu.calibrateMagnetometer();
-    imu.calibrateGyroscope();
-    imu.calibrateAccelerometer();
+    // imu.calibrateGyroscope();
+    // imu.calibrateAccelerometer();
     sleep(1);
 
     boost::asio::io_service myService;
@@ -88,30 +99,26 @@ int main() {
     Brain::BrainComm brain(myService, brain_port);
     brain.start();
 
-    std::string GPS1_port = PortDetector::findGPSPorts()[0]; // Get first gps
-    GPS gps1(myService, GPS1_port);
-    gps1.start();
+    // Initialize RobotPosition (manages GPS internally)
+    std::cout << "Initializing position tracking..." << std::endl;
+    RobotPosition robotPosition(brain, imu);
+    if (!robotPosition.initialize(myService)) {
+        std::cerr << "Failed to initialize position tracking" << std::endl;
+        return 1;
+    }
 
-
-    std::string GPS2_port = PortDetector::findGPSPorts()[1]; // Get second gps
-    GPS gps2(myService, GPS2_port);
-    gps2.start();
+    robotPosition.startUpdateThread(50);
 
     // Camera camera;
     // Model model;
     // ObjectDetection objdet;
 
-
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> request_dist(1, 3); // Replace with your desired range
     std::uniform_real_distribution<float> volt_dist(0, 12.0); // Replace with your desired range
 
     // Time interval in seconds
-    const double request_interval = 10; // Change to your desired interval
     const double volt_interval = .5; // Change to your desired interval
-
-    auto request_lastTime = std::chrono::steady_clock::now();     // Get starting time point
     auto volt_lastTime = std::chrono::steady_clock::now();     // Get starting time point
 
 
@@ -129,34 +136,8 @@ int main() {
     
         
         auto currentTime = std::chrono::steady_clock::now();
-        // Calculate elapsed time in seconds
-        double elapsedSeconds = std::chrono::duration<double>(currentTime - request_lastTime).count();
+        double elapsedSeconds = std::chrono::duration<double>(currentTime - volt_lastTime).count();
         
-        // Check if interval has passed
-        if (elapsedSeconds >= request_interval) 
-        {
-            // Generate random number
-            int randomNum = request_dist(gen);
-            switch(randomNum)
-            {
-                case 1:
-                    brain.updateRequests(static_cast<u_int16_t>(Brain::RequestFlag::LeftGPSData));
-                    std::cout << "Requesting Left GPS Data" << std::endl;
-                    break;
-                case 2:
-                    brain.updateRequests(static_cast<u_int16_t>(Brain::RequestFlag::SisterData));
-                    std::cout << "Requesting Sister GPS Data" << std::endl;
-                    break;
-                case 3:
-                    brain.updateRequests(static_cast<u_int16_t>(Brain::RequestFlag::BatteryLevel));
-                    std::cout << "Requesting Right GPS Data" << std::endl;
-                    break;
-            }
-            
-            // Reset timer
-            request_lastTime = currentTime;
-        }
-
         if (elapsedSeconds >= volt_interval) 
         {
             // Generate random number
@@ -168,10 +149,11 @@ int main() {
         brain.setJetsonBattery(ups.getBatteryPercentage());
 
         
-        printIMUdata(imu);
-        printUPSdata(ups);
+        // printIMUdata(imu);
+        // printUPSdata(ups);
+        // printPositionData(robotPosition);
 
-        usleep(100000);  // 100ms refresh rate
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));    
     }
 
     // monitor.stop();

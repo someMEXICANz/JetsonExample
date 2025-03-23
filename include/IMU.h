@@ -1,8 +1,13 @@
+// IMU.h - Restructured
 #ifndef IMU_H
 #define IMU_H
 
 #include <string>
 #include <cstdint>
+#include <thread>
+#include <mutex>
+#include <atomic>
+#include <chrono>
 
 class IMU {
 public:
@@ -12,136 +17,84 @@ public:
     // Destructor
     ~IMU();
 
-    // Initialize the IMU sensors
+    // Core operations (similar to GPS)
     bool initialize();
+    bool start();
+    void stop();
+    bool restart();
+    bool reconnect();
+    
+    // Check running state
+    bool isRunning() const { return running_; }
+    bool isConnected() const { return i2c_fd_ >= 0; }
     
     // Read sensor data
-    bool readAccelerometer(float& ax, float& ay, float& az);
-    bool readGyroscope(float& gx, float& gy, float& gz);
-    bool readMagnetometer(float& mx, float& my, float& mz);
-    bool readTemperature(float& temp);
-    
-    // Read all sensor data at once
+    bool readAccelerometer(float& ax, float& ay, float& az) const;
+    bool readGyroscope(float& gx, float& gy, float& gz) const;
+    bool readMagnetometer(float& mx, float& my, float& mz) const;
+    bool readTemperature(float& temp) const;
     bool readAll(float& ax, float& ay, float& az,
                 float& gx, float& gy, float& gz,
                 float& mx, float& my, float& mz,
-                float& temp);
+                float& temp) const;
     
     // Calibration methods
     bool calibrateAccelerometer();
     bool calibrateGyroscope();
     bool calibrateMagnetometer();
     
-    // Get the last error message
-    std::string getLastError() const;
+    // Error handling
+    std::string getLastError() const { return last_error_; }
 
 private:
+
+
+     // Helper methods
+    bool initializePort();
+    void readLoop();
+    bool readSensors();
+    
+    // I2C communication
+    bool writeByte(uint8_t devAddr, uint8_t reg, uint8_t data);
+    bool readBytes(uint8_t devAddr, uint8_t reg, uint8_t* buffer, size_t length);
+
     // I2C device properties
-    std::string _i2cBus;
-    int _i2cFd;
-    std::string _lastError;
+    std::string i2c_bus_;
+    int i2c_fd_;
+    std::string last_error_;
     
     // Sensor addresses
     static constexpr uint8_t LSM6DS3_ADDR = 0x6A;
     static constexpr uint8_t LIS3MDL_ADDR = 0x1C;
     
     // Calibration offsets
-    float _accelOffsetX, _accelOffsetY, _accelOffsetZ;
-    float _gyroOffsetX, _gyroOffsetY, _gyroOffsetZ;
-    float _magOffsetX, _magOffsetY, _magOffsetZ;
+    float accel_offset_x_, accel_offset_y_, accel_offset_z_;
+    float gyro_offset_x_, gyro_offset_y_, gyro_offset_z_;
+    float mag_offset_x_, mag_offset_y_, mag_offset_z_;
     
-    // Scale factors (can be adjusted based on configuration)
-    float _accelScale;  // g per LSB
-    float _gyroScale;   // dps per LSB
-    float _magScale;    // gauss per LSB
+    // Scale factors
+    float accel_scale_;  // g per LSB
+    float gyro_scale_;   // dps per LSB
+    float mag_scale_;    // gauss per LSB
     
-    // Helper methods for I2C communication
-    bool writeByte(uint8_t devAddr, uint8_t reg, uint8_t data);
-    bool readBytes(uint8_t devAddr, uint8_t reg, uint8_t* buffer, size_t length);
+    // Thread and running state
+    std::unique_ptr<std::thread> read_thread_;
+    std::atomic<bool> running_;
+    std::atomic<bool> connected_;
     
-    // Set error message
-    void setError(const std::string& error);
+    // Sensor data and mutex
+    mutable std::mutex data_mutex_;
+    struct SensorData {
+        float ax, ay, az;  // Accelerometer (g)
+        float gx, gy, gz;  // Gyroscope (dps)
+        float mx, my, mz;  // Magnetometer (gauss)
+        float temperature; // Temperature (°C)
+        bool valid;        // Flag indicating if data is valid
+    } sensor_data_;
+    
+  
+    
+   
 };
 
 #endif // IMU_H
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// #ifndef IMU_HPP
-// #define IMU_HPP
-
-// #include <cstdint>
-// #include <string>
-
-// class IMU {
-// public:
-//     IMU(const std::string& i2cBus = "/dev/i2c-1");
-//     ~IMU();
-
-//     bool initialize();
-    
-//     // Read sensor data
-//     bool readAccelerometer(float& ax, float& ay, float& az);
-//     bool readGyroscope(float& gx, float& gy, float& gz);
-//     bool readMagnetometer(float& mx, float& my, float& mz);
-
-// private:
-//     int i2c_fd; // File descriptor for I2C device
-//     std::string i2cBus;
-
-//     static constexpr uint8_t LSM6DS3_ADDR = 0x6A;
-//     static constexpr uint8_t LIS3MDL_ADDR = 0x1C;
-
-//     // I2C helper functions
-//     bool writeByte(uint8_t devAddr, uint8_t reg, uint8_t data);
-//     bool readBytes(uint8_t devAddr, uint8_t reg, uint8_t* buffer, size_t length);
-// };
-
-// #endif // IMU_HPP
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

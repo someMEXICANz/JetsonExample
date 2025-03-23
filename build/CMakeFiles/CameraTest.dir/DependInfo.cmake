@@ -12,6 +12,7 @@ set(CMAKE_DEPENDS_CHECK_CXX
   "/home/robolabs/JetsonExample/src/Model.cpp" "/home/robolabs/JetsonExample/build/CMakeFiles/CameraTest.dir/src/Model.cpp.o"
   "/home/robolabs/JetsonExample/src/ObjectDetection.cpp" "/home/robolabs/JetsonExample/build/CMakeFiles/CameraTest.dir/src/ObjectDetection.cpp.o"
   "/home/robolabs/JetsonExample/src/Position.cpp" "/home/robolabs/JetsonExample/build/CMakeFiles/CameraTest.dir/src/Position.cpp.o"
+  "/home/robolabs/JetsonExample/src/RobotPosition.cpp" "/home/robolabs/JetsonExample/build/CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o"
   "/home/robolabs/JetsonExample/src/UPS.cpp" "/home/robolabs/JetsonExample/build/CMakeFiles/CameraTest.dir/src/UPS.cpp.o"
   "/home/robolabs/JetsonExample/src/main.cpp" "/home/robolabs/JetsonExample/build/CMakeFiles/CameraTest.dir/src/main.cpp.o"
   )

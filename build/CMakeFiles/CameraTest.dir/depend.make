@@ -451,6 +451,16 @@ CMakeFiles/CameraTest.dir/src/ObjectDetection.cpp.o: /usr/local/include/opencv4/
 CMakeFiles/CameraTest.dir/src/Position.cpp.o: ../include/Position.h
 CMakeFiles/CameraTest.dir/src/Position.cpp.o: ../src/Position.cpp
 
+CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o: ../include/BrainComm.h
+CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o: ../include/BrainCommStats.h
+CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o: ../include/BrainCommTypes.h
+CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o: ../include/GPS.h
+CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o: ../include/IMU.h
+CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o: ../include/PortDetector.h
+CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o: ../include/Position.h
+CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o: ../include/RobotPosition.h
+CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o: ../src/RobotPosition.cpp
+
 CMakeFiles/CameraTest.dir/src/UPS.cpp.o: ../include/UPS.h
 CMakeFiles/CameraTest.dir/src/UPS.cpp.o: ../src/UPS.cpp
 
@@ -464,6 +474,7 @@ CMakeFiles/CameraTest.dir/src/main.cpp.o: ../include/Model.h
 CMakeFiles/CameraTest.dir/src/main.cpp.o: ../include/ObjectDetection.h
 CMakeFiles/CameraTest.dir/src/main.cpp.o: ../include/PortDetector.h
 CMakeFiles/CameraTest.dir/src/main.cpp.o: ../include/Position.h
+CMakeFiles/CameraTest.dir/src/main.cpp.o: ../include/RobotPosition.h
 CMakeFiles/CameraTest.dir/src/main.cpp.o: ../include/UPS.h
 CMakeFiles/CameraTest.dir/src/main.cpp.o: ../src/main.cpp
 CMakeFiles/CameraTest.dir/src/main.cpp.o: /usr/local/cuda/include/builtin_types.h
