@@ -13,9 +13,23 @@
 #include <iostream>
 #include "Position.h"
 
+
+
+
+
+struct GPSPosition{
+
+    float x, y, z;
+    float azimuth, elevation, rotation;
+    float quality; 
+    std::chrono::system_clock::time_point timestamp;
+
+};
+
 class GPS 
 {
 public:
+
     // Status bit definitions
     static constexpr uint32_t STATUS_CONNECTED    = 0x00000001;
     static constexpr uint32_t STATUS_NODOTS       = 0x00000002;
@@ -29,13 +43,16 @@ public:
     static constexpr uint32_t STATUS_NOSOLUTION   = 0x00000200;
     static constexpr uint32_t STATUS_KALMAN_EST   = 0x00100000;
 
-    explicit GPS(boost::asio::io_service& io_service, 
-                const std::string& port = "");
+
+    explicit GPS(boost::asio::io_service& service, 
+                const std::string& new_port = "");
     ~GPS();
 
     // Delete copy constructor and assignment operator
     GPS(const GPS&) = delete;
     GPS& operator=(const GPS&) = delete;
+
+   
 
     // Core operations
     bool start();
@@ -43,16 +60,14 @@ public:
     bool restart();
 
     // Status checks
-    bool isConnected() const { return connected_; }
-    bool isRunning() const { return running_; }
+    bool isConnected() const { return connected; }
+    bool isRunning() const { return running; }
     
-    // Raw position retrieval - no filtering or validation
-    Position getRawPosition() const;
-    uint32_t getStatus() const { return status_; }
+    GPSPosition getGPSposition() const;
 
     // Configuration methods
-    void setPort(const std::string& port) { port_ = port; }
-    const std::string& getPort() const { return port_; }
+    //void setPort(const std::string& found_port) { port = found_port; }
+    const std::string& getPort() const { return port; }
 
 private:
     // Internal methods
@@ -60,21 +75,19 @@ private:
     bool initializePort();
     void processBuffer(const std::vector<unsigned char>& buffer);
     bool reconnect();
+    float calculateGPSQuality(uint32_t current_status) const;
 
-    // Hardware connection
-    std::string port_;
-    boost::asio::io_service& ioService;
-    std::unique_ptr<boost::asio::serial_port> serialPort;
+   // Serial Port variables
+    std::string port;
+    boost::asio::io_service& io_service;
+    std::unique_ptr<boost::asio::serial_port> serial_port;
+    bool connected;
+    bool running;
     
     // Thread safety and state
-    mutable std::mutex position_mutex_;
-    std::atomic<bool> running_{false};
-    std::atomic<bool> connected_{false};
-    std::unique_ptr<std::thread> read_thread_;  
-
-    // Position and status data
-    uint32_t status_;
-    Position position_;
+    mutable std::mutex position_mutex;
+    std::unique_ptr<std::thread> read_thread;  
+    GPSPosition current_position;
     
     // Configuration constants
     const std::chrono::milliseconds READ_TIMEOUT{500};

@@ -1,16 +1,15 @@
 #include "GPS.h"
 
-GPS::GPS(boost::asio::io_service& io_service, const std::string& port)
-    : ioService(io_service),
-      port_(port),
-      running_(false),
-      connected_(false),
-      status_(0)
+GPS::GPS(boost::asio::io_service& service, const std::string& new_port)
+    : 
+      port(new_port),
+      io_service(service),
+      running(false),
+      connected(false),
+      current_position{0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, std::chrono::system_clock::now()}
 {
-    // Initialize position with zeros
-    position_ = Position();
     
-    if (!port_.empty()) {
+    if (!port.empty()) {
         initializePort();
     }
 }
@@ -21,32 +20,32 @@ GPS::~GPS()
 }
 
 bool GPS::start() {
-    if (running_) return true;
+    if (running) return true;
     
-    if (!connected_ && !reconnect()) {
+    if (!connected && !reconnect()) {
         return false;
     }
     
-    running_ = true;
-    read_thread_ = std::make_unique<std::thread>(&GPS::readLoop, this);
+    running = true;
+    read_thread = std::make_unique<std::thread>(&GPS::readLoop, this);
     
     return true;
 }
 
 void GPS::stop() {
-    running_ = false;
+    running = false;
     
-    if (read_thread_ && read_thread_->joinable()) {
-        read_thread_->join();
+    if (read_thread && read_thread->joinable()) {
+        read_thread->join();
     }
     
-    read_thread_.reset();
+    read_thread.reset();
     
-    if (serialPort && serialPort->is_open()) {
-        serialPort->close();
+    if (serial_port && serial_port->is_open()) {
+        serial_port->close();
     }
     
-    connected_ = false;
+    connected = false;
 }
 
 bool GPS::restart() {
@@ -55,39 +54,41 @@ bool GPS::restart() {
 }
 
 bool GPS::reconnect() {
-    if (serialPort && serialPort->is_open()) {
-        serialPort->close();
+    if (serial_port && serial_port->is_open()) {
+        serial_port->close();
     }
     return initializePort();
 }
 
+
+
 bool GPS::initializePort() {
     try {
-        serialPort = std::make_unique<boost::asio::serial_port>(ioService);
-        serialPort->open(port_);
-        serialPort->set_option(boost::asio::serial_port_base::baud_rate(115200));
-        serialPort->set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
-        serialPort->set_option(boost::asio::serial_port_base::character_size(8));
-        serialPort->set_option(boost::asio::serial_port_base::flow_control(boost::asio::serial_port_base::flow_control::none));
-        serialPort->set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
+        serial_port = std::make_unique<boost::asio::serial_port>(io_service);
+        serial_port->open(port);
+        serial_port->set_option(boost::asio::serial_port_base::baud_rate(115200));
+        serial_port->set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
+        serial_port->set_option(boost::asio::serial_port_base::character_size(8));
+        serial_port->set_option(boost::asio::serial_port_base::flow_control(boost::asio::serial_port_base::flow_control::none));
+        serial_port->set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
         
-        connected_ = true;
-        std::cout << "GPS initialized on port " << port_ << std::endl;
+        connected = true;
+        std::cout << "GPS initialized on port " << port << std::endl;
         return true;
     } catch (const boost::system::system_error& e) {
         std::cerr << "Failed to initialize GPS port: " << e.what() << std::endl;
-        connected_ = false;
+        connected = false;
         return false;
     }
 }
 
 void GPS::readLoop() {
     std::cout << "GPS read loop started" << std::endl;
-    boost::asio::deadline_timer timer(ioService);
+    boost::asio::deadline_timer timer(io_service);
     
-    while (running_) {
+    while (running) {
         try {
-            if (!connected_ && !reconnect()) {
+            if (!connected && !reconnect()) {
                 std::this_thread::sleep_for(RECONNECT_DELAY);
                 continue;
             }
@@ -99,12 +100,12 @@ void GPS::readLoop() {
             timer.expires_from_now(boost::posix_time::milliseconds(READ_TIMEOUT.count()));
             
             // Read until end marker 0xCC33 (based on Python code)
-            std::size_t bytes_read = boost::asio::read(*serialPort, boost::asio::buffer(buffer), 
+            std::size_t bytes_read = boost::asio::read(*serial_port, boost::asio::buffer(buffer), 
                                      boost::asio::transfer_at_least(16), ec);
             
             if (ec) {
                 std::cerr << "GPS read error: " << ec.message() << std::endl;
-                connected_ = false;
+                connected = false;
                 continue;
             }
 
@@ -113,7 +114,7 @@ void GPS::readLoop() {
             }
         } catch (const std::exception& e) {
             std::cerr << "Error in GPS read loop: " << e.what() << std::endl;
-            connected_ = false;
+            connected = false;
             std::this_thread::sleep_for(RECONNECT_DELAY);
         }
     }
@@ -123,7 +124,8 @@ void GPS::readLoop() {
 
 void GPS::processBuffer(const std::vector<unsigned char>& buffer) {
     // Extract status byte
-    status_ = buffer[1];
+    uint32_t current_status = buffer[1];
+    float quality = calculateGPSQuality(current_status);
 
     // Parse position data (following Python implementation)
     int16_t x_raw, y_raw, z_raw, az_raw, el_raw, rot_raw;
@@ -134,20 +136,59 @@ void GPS::processBuffer(const std::vector<unsigned char>& buffer) {
     std::memcpy(&el_raw, &buffer[10], 2);
     std::memcpy(&rot_raw, &buffer[12], 2);
 
-    // Convert to proper units, just like in Python code
-    float x = x_raw / 10000.0f;
-    float y = y_raw / 10000.0f;
-    float z = z_raw / 10000.0f;
-    float azimuth = az_raw / 32768.0f * 180.0f; 
-    float elevation = el_raw / 32768.0f * 180.0f;
-    float rotation = rot_raw / 32768.0f * 180.0f;
-
     // Update position
-    std::lock_guard<std::mutex> lock(position_mutex_);
-    position_ = Position(x, y, z, azimuth, elevation, rotation);
+    std::lock_guard<std::mutex> lock(position_mutex);
+    // Convert to proper units, just like in Python code
+    current_position.x = x_raw / 10000.0f;
+    current_position.y = y_raw / 10000.0f;
+    current_position.z = z_raw / 10000.0f;
+    current_position.azimuth = az_raw / 32768.0f * 180.0f; 
+    current_position.elevation = el_raw / 32768.0f * 180.0f;
+    current_position.rotation = rot_raw / 32768.0f * 180.0f;
+   
 }
 
-Position GPS::getRawPosition() const {
-    std::lock_guard<std::mutex> lock(position_mutex_);
-    return position_;
+GPSPosition GPS::getGPSposition() const {
+    std::lock_guard<std::mutex> lock(position_mutex);
+    return current_position;
+}
+
+
+
+
+float GPS::calculateGPSQuality(uint32_t status) const 
+{
+    // Start with maximum quality
+    float quality = 1.0f;
+    
+    // Critical errors - position is unreliable
+    if (!(status & GPS::STATUS_CONNECTED)) 
+    {
+        return 0.0f;  // Very low quality
+    }
+    
+    // Major data acquisition issues
+    if ((status & GPS::STATUS_NODOTS) || (status & GPS::STATUS_NOBITS)  || 
+        (status & GPS::STATUS_NOSOLUTION)) 
+    {
+        quality *= 0.1f;
+    }
+    
+    // Data processing issues
+    if ((status & GPS::STATUS_NORAWBITS) || (status & GPS::STATUS_NOGROUPS) || 
+        (status & GPS::STATUS_PIXELERROR)) {
+        quality *= 0.5f;
+    }
+    
+    // Position estimation or jumps
+    if ((status & GPS::STATUS_ANGLEJUMP) || (status & GPS::STATUS_POSJUMP)) {
+        quality *= 0.7f;
+    }
+    
+    // Minor issues
+    if ((status & GPS::STATUS_SOLVER) || (status & GPS::STATUS_KALMAN_EST)) {
+        quality *= 0.8f;
+    }
+    
+    return quality;
 }

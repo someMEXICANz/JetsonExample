@@ -49,8 +49,6 @@ public:
 private:
 
 
-     // Helper methods
-    bool initializePort();
     void readLoop();
     bool readSensors();
     

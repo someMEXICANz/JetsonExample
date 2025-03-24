@@ -1,20 +1,16 @@
 #include "Position.h"
 
 Position::Position() 
-    : x(0), y(0), z(0), azimuth(0), elevation(0), rotation(0),
+    : x(0), y(0), z(0),
       confidence(0.0f), timestamp(std::chrono::system_clock::now()) {}
 
 Position::Position(float x, float y, float z, float azimuth, float elevation, float rotation)
     : x(x), y(y), z(z), 
-      azimuth(azimuth), elevation(elevation), rotation(rotation),
       confidence(1.0f), timestamp(std::chrono::system_clock::now()) {}
 
 void Position::printPosition() const {
     std::cout << "Position (x, y, z): (" << std::fixed << std::setprecision(3) 
               << x << ", " << y << ", " << z << ") meters\n"
-              << "Orientation (azimuth, elevation, rotation): (" 
-              << std::setprecision(1) << azimuth << "°, " 
-              << elevation << "°, " << rotation << "°)\n"
               << "Confidence: " << std::setprecision(2) << confidence << std::endl;
 }
 

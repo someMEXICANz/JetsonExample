@@ -15,17 +15,18 @@
 class RobotPosition {
 public:
     // Constructor and initialization
-    RobotPosition(Brain::BrainComm& brain, IMU& imu);
+    explicit RobotPosition(Brain::BrainComm& brain, IMU& imu);
     ~RobotPosition();
+
+    // Delete copy constructor and assignment operator
+    RobotPosition(const RobotPosition&) = delete;
+    RobotPosition& operator=(const RobotPosition&) = delete;
+
+    // Core operations
     bool initialize(boost::asio::io_service& io_service);
-    
-    // Thread control
-    bool startUpdateThread(int update_frequency_hz = 50);
-    void stopUpdateThread();
-    bool isThreadRunning() const { return update_thread_running_; }
-    
-    // Manual update (if not using thread)
-    void update();
+    bool start();
+    void stop();
+    bool isRunning() const { return running; }
     
     // Position access methods
     Position getPosition() const;
@@ -39,53 +40,53 @@ public:
     
     // Calibration and diagnostics
     void calibrateIMUHeading();
-    bool areGPSIdentified() const { return gps_identified_; }
+    bool areGPSIdentified() const { return gps_identified; }
     
 private:
     // References to external components
-    Brain::BrainComm& brain_;
-    IMU& imu_;
+    Brain::BrainComm& pos_brain;
+    IMU& pos_imu;
     
     // GPS sensors managed by this class
-    std::unique_ptr<GPS> gps1_;
-    std::unique_ptr<GPS> gps2_;
+    std::unique_ptr<GPS> gps1;
+    std::unique_ptr<GPS> gps2;
     
     // Pointers to identified sensors (not owned)
-    GPS* left_gps_ = nullptr;
-    GPS* right_gps_ = nullptr;
+    GPS* left_gps = nullptr;
+    GPS* right_gps = nullptr;
+    bool gps_identified = false;
     
     // Current position state
-    Position robot_position_;
-    float position_confidence_ = 0.0f;
+    Position current_position;
+    float position_confidence = 0.0f;
 
     // GPS offsets from Brain
-    Brain::Position2D left_gps_offset_;
-    Brain::Position2D right_gps_offset_;
-    bool offsets_received_ = false;
+    Brain::Position2D left_gps_offset;
+    Brain::Position2D right_gps_offset;
+    bool offsets_received = false;
     
     // Heading calibration
     float heading_offset_ = 0.0f;
-    std::chrono::system_clock::time_point last_calibration_time_;  // Changed to system_clock
+    std::chrono::system_clock::time_point last_calibration_time;  
     
     // Thread safety
-    mutable std::mutex position_mutex_;
+    mutable std::mutex position_mutex;
     
     // Update thread
-    std::thread update_thread_;
-    std::atomic<bool> update_thread_running_{false};
-    
-    // Sensor state
-    bool gps_identified_ = false;
+    std::unique_ptr<std::thread> update_thread;
+    bool running;
+    int update_frequency = 50;
+  
     
     // Position filtering and processing
-    std::deque<Position> position_history_;
-    const size_t position_history_max_size_ = 5;
+    std::deque<Position> position_history;
+    const size_t position_history_max_size = 20;
     
     // Velocity calculation
-    Position last_position_;
-    std::chrono::system_clock::time_point last_velocity_update_;  // Changed to system_clock
-    float current_velocity_ = 0.0f;
-    float current_angular_velocity_ = 0.0f;
+    Position last_position;
+    std::chrono::system_clock::time_point last_velocity_update;  // Changed to system_clock
+    float current_velocity = 0.0f;
+    float current_angular_velocity = 0.0f;
     
     // Position validation parameters
     const float MAX_POSITION_JUMP = 0.25f;
@@ -97,15 +98,14 @@ private:
     bool identifyGPSSensors();
     float getHeadingFromIMU() const;
     bool isRobotStationary() const;
-    Position averagePositions(const std::vector<Position>& positions);
+    Position averagePositions(const std::vector<GPSPosition>& positions);
     void filterPosition(Position& position);
     bool detectPositionJump(const Position& current, const Position& previous) const;
     void updateVelocity(const Position& current_position);
-    float calculateGPSQuality(uint32_t status) const;
     bool isPositionValid(const Position& position) const;
     
     // Thread function
-    void updateThreadFunction(int update_frequency_hz);
+    void updateLoop();
 };
 
 #endif // ROBOT_POSITION_H

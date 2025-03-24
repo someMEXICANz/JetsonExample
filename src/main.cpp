@@ -34,12 +34,7 @@ void printIMUdata(IMU &imu)
         std::cout << "Temperature: " << temperature << " °C" << std::endl;                      // Temperature in Celsius
          std::cout << "--------------------------------------------" << std::endl;
     } 
-    else 
-    {
-         std::cout << "--------------------------------------------" << std::endl;
-        std::cerr << "Error reading sensor data: " << imu.getLastError() << std::endl;
-         std::cout << "--------------------------------------------" << std::endl;
-    }
+    
 }
 
 void printUPSdata(UPS &ups)
@@ -89,25 +84,25 @@ int main() {
 
 
     imu.calibrateMagnetometer();
-    // imu.calibrateGyroscope();
-    // imu.calibrateAccelerometer();
+    imu.calibrateGyroscope();
+    imu.calibrateAccelerometer();
     sleep(1);
 
-    boost::asio::io_service myService;
+    // boost::asio::io_service myService;
 
-    std::string brain_port = PortDetector::findBrainPorts()[0]; // Get first brain
-    Brain::BrainComm brain(myService, brain_port);
-    brain.start();
+    // std::string brain_port = PortDetector::findBrainPorts()[0]; // Get first brain
+    // Brain::BrainComm brain(myService, brain_port);
+    // brain.start();
 
-    // Initialize RobotPosition (manages GPS internally)
-    std::cout << "Initializing position tracking..." << std::endl;
-    RobotPosition robotPosition(brain, imu);
-    if (!robotPosition.initialize(myService)) {
-        std::cerr << "Failed to initialize position tracking" << std::endl;
-        return 1;
-    }
+    // // Initialize RobotPosition (manages GPS internally)
+    // std::cout << "Initializing position tracking..." << std::endl;
+    // RobotPosition robotPosition(brain, imu);
+    // if (!robotPosition.initialize(myService)) {
+    //     std::cerr << "Failed to initialize position tracking" << std::endl;
+    //     return 1;
+    // }
 
-    robotPosition.startUpdateThread(50);
+    // robotPosition.start();
 
     // Camera camera;
     // Model model;
@@ -115,10 +110,10 @@ int main() {
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> volt_dist(0, 12.0); // Replace with your desired range
+    std::uniform_real_distribution<float> volt_dist(-12.0, 12.0); // Replace with your desired range
 
     // Time interval in seconds
-    const double volt_interval = .5; // Change to your desired interval
+    const double volt_interval = .1; // Change to your desired interval
     auto volt_lastTime = std::chrono::steady_clock::now();     // Get starting time point
 
 
@@ -135,29 +130,27 @@ int main() {
         // camera.displayDetections(Det);
     
         
-        auto currentTime = std::chrono::steady_clock::now();
-        double elapsedSeconds = std::chrono::duration<double>(currentTime - volt_lastTime).count();
+        // auto currentTime = std::chrono::steady_clock::now();
+        // double elapsedSeconds = std::chrono::duration<double>(currentTime - volt_lastTime).count();
         
-        if (elapsedSeconds >= volt_interval) 
-        {
-            // Generate random number
-            float randomNum = volt_dist(gen);
-            brain.setMotorVoltages(randomNum,randomNum);
-            volt_lastTime = currentTime;
-        }
+        // if (elapsedSeconds >= volt_interval) 
+        // {
+        //     // Generate random number
+        //     float randomNum = volt_dist(gen);
+        //     brain.setMotorVoltages(randomNum,randomNum);
+        //     volt_lastTime = currentTime;
+        // }
 
-        brain.setJetsonBattery(ups.getBatteryPercentage());
+        // brain.setJetsonBattery(ups.getBatteryPercentage());
 
         
         // printIMUdata(imu);
-        // printUPSdata(ups);
+         printUPSdata(ups);
         // printPositionData(robotPosition);
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));    
     }
-
-    // monitor.stop();
-    brain.stop();
+    // brain.stop();
     
     
     return 0;
