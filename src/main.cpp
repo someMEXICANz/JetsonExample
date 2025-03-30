@@ -94,13 +94,13 @@ int main() {
     Brain::BrainComm brain(myService, brain_port);
     brain.start();
 
-    // Initialize RobotPosition (manages GPS internally)
-    std::cout << "Initializing position tracking..." << std::endl;
-    RobotPosition robotPosition(brain, imu);
-    if (!robotPosition.initialize(myService)) {
-        std::cerr << "Failed to initialize position tracking" << std::endl;
-        return 1;
-    }
+    // // Initialize RobotPosition (manages GPS internally)
+    // std::cout << "Initializing position tracking..." << std::endl;
+    // RobotPosition robotPosition(brain, imu);
+    // if (!robotPosition.initialize(myService)) {
+    //     std::cerr << "Failed to initialize position tracking" << std::endl;
+    //     return 1;
+    // }
 
     // robotPosition.start();
 
@@ -113,23 +113,21 @@ int main() {
  
     while (true) 
     {
-
-        brain.updateRequests(static_cast<u_int16_t>(Brain::RequestFlag::LeftGPSData));
     
         camera.preprocessFrames(model.inferInput);
         model.runInference();
         std::vector<DetectedObject> Det = objdet.decodeOutputs(model.inferOutput1, model.inferOutput2);
 
-        // brain.setJetsonBattery(ups.getBatteryPercentage());
+        brain.setJetsonBattery(ups.getBatteryPercentage());
 
         
         // printIMUdata(imu);
-         // printUPSdata(ups);
+         printUPSdata(ups);
         // printPositionData(robotPosition);
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));    
     }
-    // brain.stop();
+    brain.stop();
     
     
     return 0;
