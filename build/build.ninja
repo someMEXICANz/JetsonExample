@@ -58,88 +58,88 @@ build cmake_object_order_depends_target_CameraTest: phony || CMakeFiles/CameraTe
 build CMakeFiles/CameraTest.dir/src/main.cpp.o: CXX_COMPILER__CameraTest_Debug ../src/main.cpp || cmake_object_order_depends_target_CameraTest
   DEFINES = -DEIGEN_USE_THREADS -DFMT_HEADER_ONLY=0 -DFMT_STRING_ALIAS=1 -DFMT_USE_WINDOWS_H=0 -DOPEN3D_STATIC -D_GLIBCXX_USE_CXX11_ABI=1
   DEP_FILE = CMakeFiles/CameraTest.dir/src/main.cpp.o.d
-  FLAGS = -g   -Wno-deprecated-declarations -std=gnu++1z
-  INCLUDES = -I/usr/local/cuda/include -I/usr/include/eigen3 -I../include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
+  FLAGS = -g -Wno-deprecated-declarations -std=gnu++1z
+  INCLUDES = -I../include -I/usr/include/eigen3 -I/usr/local/cuda/include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
   OBJECT_DIR = CMakeFiles/CameraTest.dir
   OBJECT_FILE_DIR = CMakeFiles/CameraTest.dir/src
 
 build CMakeFiles/CameraTest.dir/src/Camera.cpp.o: CXX_COMPILER__CameraTest_Debug ../src/Camera.cpp || cmake_object_order_depends_target_CameraTest
   DEFINES = -DEIGEN_USE_THREADS -DFMT_HEADER_ONLY=0 -DFMT_STRING_ALIAS=1 -DFMT_USE_WINDOWS_H=0 -DOPEN3D_STATIC -D_GLIBCXX_USE_CXX11_ABI=1
   DEP_FILE = CMakeFiles/CameraTest.dir/src/Camera.cpp.o.d
-  FLAGS = -g   -Wno-deprecated-declarations -std=gnu++1z
-  INCLUDES = -I/usr/local/cuda/include -I/usr/include/eigen3 -I../include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
+  FLAGS = -g -Wno-deprecated-declarations -std=gnu++1z
+  INCLUDES = -I../include -I/usr/include/eigen3 -I/usr/local/cuda/include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
   OBJECT_DIR = CMakeFiles/CameraTest.dir
   OBJECT_FILE_DIR = CMakeFiles/CameraTest.dir/src
 
 build CMakeFiles/CameraTest.dir/src/Model.cpp.o: CXX_COMPILER__CameraTest_Debug ../src/Model.cpp || cmake_object_order_depends_target_CameraTest
   DEFINES = -DEIGEN_USE_THREADS -DFMT_HEADER_ONLY=0 -DFMT_STRING_ALIAS=1 -DFMT_USE_WINDOWS_H=0 -DOPEN3D_STATIC -D_GLIBCXX_USE_CXX11_ABI=1
   DEP_FILE = CMakeFiles/CameraTest.dir/src/Model.cpp.o.d
-  FLAGS = -g   -Wno-deprecated-declarations -std=gnu++1z
-  INCLUDES = -I/usr/local/cuda/include -I/usr/include/eigen3 -I../include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
+  FLAGS = -g -Wno-deprecated-declarations -std=gnu++1z
+  INCLUDES = -I../include -I/usr/include/eigen3 -I/usr/local/cuda/include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
   OBJECT_DIR = CMakeFiles/CameraTest.dir
   OBJECT_FILE_DIR = CMakeFiles/CameraTest.dir/src
 
 build CMakeFiles/CameraTest.dir/src/ObjectDetection.cpp.o: CXX_COMPILER__CameraTest_Debug ../src/ObjectDetection.cpp || cmake_object_order_depends_target_CameraTest
   DEFINES = -DEIGEN_USE_THREADS -DFMT_HEADER_ONLY=0 -DFMT_STRING_ALIAS=1 -DFMT_USE_WINDOWS_H=0 -DOPEN3D_STATIC -D_GLIBCXX_USE_CXX11_ABI=1
   DEP_FILE = CMakeFiles/CameraTest.dir/src/ObjectDetection.cpp.o.d
-  FLAGS = -g   -Wno-deprecated-declarations -std=gnu++1z
-  INCLUDES = -I/usr/local/cuda/include -I/usr/include/eigen3 -I../include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
+  FLAGS = -g -Wno-deprecated-declarations -std=gnu++1z
+  INCLUDES = -I../include -I/usr/include/eigen3 -I/usr/local/cuda/include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
   OBJECT_DIR = CMakeFiles/CameraTest.dir
   OBJECT_FILE_DIR = CMakeFiles/CameraTest.dir/src
 
 build CMakeFiles/CameraTest.dir/src/GPS.cpp.o: CXX_COMPILER__CameraTest_Debug ../src/GPS.cpp || cmake_object_order_depends_target_CameraTest
   DEFINES = -DEIGEN_USE_THREADS -DFMT_HEADER_ONLY=0 -DFMT_STRING_ALIAS=1 -DFMT_USE_WINDOWS_H=0 -DOPEN3D_STATIC -D_GLIBCXX_USE_CXX11_ABI=1
   DEP_FILE = CMakeFiles/CameraTest.dir/src/GPS.cpp.o.d
-  FLAGS = -g   -Wno-deprecated-declarations -std=gnu++1z
-  INCLUDES = -I/usr/local/cuda/include -I/usr/include/eigen3 -I../include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
+  FLAGS = -g -Wno-deprecated-declarations -std=gnu++1z
+  INCLUDES = -I../include -I/usr/include/eigen3 -I/usr/local/cuda/include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
   OBJECT_DIR = CMakeFiles/CameraTest.dir
   OBJECT_FILE_DIR = CMakeFiles/CameraTest.dir/src
 
 build CMakeFiles/CameraTest.dir/src/Position.cpp.o: CXX_COMPILER__CameraTest_Debug ../src/Position.cpp || cmake_object_order_depends_target_CameraTest
   DEFINES = -DEIGEN_USE_THREADS -DFMT_HEADER_ONLY=0 -DFMT_STRING_ALIAS=1 -DFMT_USE_WINDOWS_H=0 -DOPEN3D_STATIC -D_GLIBCXX_USE_CXX11_ABI=1
   DEP_FILE = CMakeFiles/CameraTest.dir/src/Position.cpp.o.d
-  FLAGS = -g   -Wno-deprecated-declarations -std=gnu++1z
-  INCLUDES = -I/usr/local/cuda/include -I/usr/include/eigen3 -I../include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
+  FLAGS = -g -Wno-deprecated-declarations -std=gnu++1z
+  INCLUDES = -I../include -I/usr/include/eigen3 -I/usr/local/cuda/include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
   OBJECT_DIR = CMakeFiles/CameraTest.dir
   OBJECT_FILE_DIR = CMakeFiles/CameraTest.dir/src
 
 build CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o: CXX_COMPILER__CameraTest_Debug ../src/RobotPosition.cpp || cmake_object_order_depends_target_CameraTest
   DEFINES = -DEIGEN_USE_THREADS -DFMT_HEADER_ONLY=0 -DFMT_STRING_ALIAS=1 -DFMT_USE_WINDOWS_H=0 -DOPEN3D_STATIC -D_GLIBCXX_USE_CXX11_ABI=1
   DEP_FILE = CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o.d
-  FLAGS = -g   -Wno-deprecated-declarations -std=gnu++1z
-  INCLUDES = -I/usr/local/cuda/include -I/usr/include/eigen3 -I../include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
+  FLAGS = -g -Wno-deprecated-declarations -std=gnu++1z
+  INCLUDES = -I../include -I/usr/include/eigen3 -I/usr/local/cuda/include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
   OBJECT_DIR = CMakeFiles/CameraTest.dir
   OBJECT_FILE_DIR = CMakeFiles/CameraTest.dir/src
 
 build CMakeFiles/CameraTest.dir/src/BrainCommStats.cpp.o: CXX_COMPILER__CameraTest_Debug ../src/BrainCommStats.cpp || cmake_object_order_depends_target_CameraTest
   DEFINES = -DEIGEN_USE_THREADS -DFMT_HEADER_ONLY=0 -DFMT_STRING_ALIAS=1 -DFMT_USE_WINDOWS_H=0 -DOPEN3D_STATIC -D_GLIBCXX_USE_CXX11_ABI=1
   DEP_FILE = CMakeFiles/CameraTest.dir/src/BrainCommStats.cpp.o.d
-  FLAGS = -g   -Wno-deprecated-declarations -std=gnu++1z
-  INCLUDES = -I/usr/local/cuda/include -I/usr/include/eigen3 -I../include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
+  FLAGS = -g -Wno-deprecated-declarations -std=gnu++1z
+  INCLUDES = -I../include -I/usr/include/eigen3 -I/usr/local/cuda/include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
   OBJECT_DIR = CMakeFiles/CameraTest.dir
   OBJECT_FILE_DIR = CMakeFiles/CameraTest.dir/src
 
 build CMakeFiles/CameraTest.dir/src/BrainComm.cpp.o: CXX_COMPILER__CameraTest_Debug ../src/BrainComm.cpp || cmake_object_order_depends_target_CameraTest
   DEFINES = -DEIGEN_USE_THREADS -DFMT_HEADER_ONLY=0 -DFMT_STRING_ALIAS=1 -DFMT_USE_WINDOWS_H=0 -DOPEN3D_STATIC -D_GLIBCXX_USE_CXX11_ABI=1
   DEP_FILE = CMakeFiles/CameraTest.dir/src/BrainComm.cpp.o.d
-  FLAGS = -g   -Wno-deprecated-declarations -std=gnu++1z
-  INCLUDES = -I/usr/local/cuda/include -I/usr/include/eigen3 -I../include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
+  FLAGS = -g -Wno-deprecated-declarations -std=gnu++1z
+  INCLUDES = -I../include -I/usr/include/eigen3 -I/usr/local/cuda/include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
   OBJECT_DIR = CMakeFiles/CameraTest.dir
   OBJECT_FILE_DIR = CMakeFiles/CameraTest.dir/src
 
 build CMakeFiles/CameraTest.dir/src/IMU.cpp.o: CXX_COMPILER__CameraTest_Debug ../src/IMU.cpp || cmake_object_order_depends_target_CameraTest
   DEFINES = -DEIGEN_USE_THREADS -DFMT_HEADER_ONLY=0 -DFMT_STRING_ALIAS=1 -DFMT_USE_WINDOWS_H=0 -DOPEN3D_STATIC -D_GLIBCXX_USE_CXX11_ABI=1
   DEP_FILE = CMakeFiles/CameraTest.dir/src/IMU.cpp.o.d
-  FLAGS = -g   -Wno-deprecated-declarations -std=gnu++1z
-  INCLUDES = -I/usr/local/cuda/include -I/usr/include/eigen3 -I../include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
+  FLAGS = -g -Wno-deprecated-declarations -std=gnu++1z
+  INCLUDES = -I../include -I/usr/include/eigen3 -I/usr/local/cuda/include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
   OBJECT_DIR = CMakeFiles/CameraTest.dir
   OBJECT_FILE_DIR = CMakeFiles/CameraTest.dir/src
 
 build CMakeFiles/CameraTest.dir/src/UPS.cpp.o: CXX_COMPILER__CameraTest_Debug ../src/UPS.cpp || cmake_object_order_depends_target_CameraTest
   DEFINES = -DEIGEN_USE_THREADS -DFMT_HEADER_ONLY=0 -DFMT_STRING_ALIAS=1 -DFMT_USE_WINDOWS_H=0 -DOPEN3D_STATIC -D_GLIBCXX_USE_CXX11_ABI=1
   DEP_FILE = CMakeFiles/CameraTest.dir/src/UPS.cpp.o.d
-  FLAGS = -g   -Wno-deprecated-declarations -std=gnu++1z
-  INCLUDES = -I/usr/local/cuda/include -I/usr/include/eigen3 -I../include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
+  FLAGS = -g -Wno-deprecated-declarations -std=gnu++1z
+  INCLUDES = -I../include -I/usr/include/eigen3 -I/usr/local/cuda/include -isystem /usr/local/include/opencv4 -isystem /usr/local/include/open3d/3rdparty
   OBJECT_DIR = CMakeFiles/CameraTest.dir
   OBJECT_FILE_DIR = CMakeFiles/CameraTest.dir/src
 

@@ -4,6 +4,7 @@
 #include <librealsense2/rs.hpp>
 #include <opencv2/opencv.hpp>
 #include <ObjectDetection.h>
+#include <stdexcept>
 #include <mutex>
 #include <thread>
 #include <iostream>
@@ -43,13 +44,14 @@ public:
 
 
 private:
+
     rs2::pipeline pipe;              // RealSense pipeline
     rs2::config config;              // Configuration for the pipeline
     rs2::align align_to;             // Align depth to color
     
     // Internal methods
     void updateLoop();
-    void initialize();
+    bool initialize();
     bool reconnect();
 
     bool running;
@@ -57,9 +59,7 @@ private:
 
     // open3d::t::geometry::PointCloud current_PointCloud;
     std::unique_ptr<std::thread> update_thread;
-    std::mutex pc_mutex;
-    std::mutex frame_mutex;
-                 
+    std::mutex stream_mutex;
     // FPS tracking
     std::chrono::steady_clock::time_point lastFrameTime;
     float fps;
@@ -67,7 +67,7 @@ private:
     
     cv::Mat convertFrameToMat(const rs2::frame& frame); // Convert RealSense frame to OpenCV Mat
     void updateFPS();              // Update FPS calculation
-    int update_frequency;
+    
     const std::chrono::milliseconds RECONNECT_DELAY{2500};
 
 

@@ -1,15 +1,11 @@
-#include "Camera.h"
+#include <Camera.h>
 
-Camera::Camera() : align_to(RS2_STREAM_COLOR), fps(0.0f)
+Camera::Camera() 
+: align_to(RS2_STREAM_COLOR), 
+  fps(0.0f)
 {
-    // Configure the pipeline for color and depth streams
-    config.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
-    config.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
-
-    // Retrieve the depth scale from a temporary pipeline start
-    rs2::pipeline_profile profile = pipe.start(config);
-    auto sensor = profile.get_device().first<rs2::depth_sensor>();
-    depth_scale = sensor.get_depth_scale();
+    initialize();
+    
 }
 
 
@@ -20,60 +16,88 @@ Camera::~Camera()
 
 bool Camera::start()
 {
-    if (running) return true;
 
-    running = true;
-    update_thread = std::make_unique<std::thread>(&Camera::updateLoop, this);
+    if (running) return true;
     
-    return running;
+    if (!connected && !reconnect()) 
+    {
+        return false;
+    }
+    
+    update_thread = std::make_unique<std::thread>(&Camera::updateLoop, this);
+    running = true;
+    
+    return true;
 }
 
 void Camera::stop()
 {
-     running = false;
+    running = false;
     
     if (update_thread && update_thread->joinable()) {
         update_thread->join();
     }
     update_thread.reset();
 
+    connected = false;
+
 }
 
+bool Camera::restart() {
+    stop();
+    return start();
+}
+
+bool Camera::reconnect()
+{
+    return initialize();
+}
 
 void Camera::updateLoop() 
 {
     std::cerr << "Camera update loop started" << std::endl;
-    auto update_period = std::chrono::milliseconds(1000/ update_frequency);
-    auto start_time = std::chrono ::steady_clock::now();
-    auto elapsed = std::chrono ::steady_clock::now();
-
+    
 
     while(running)
     {
-        if (!connected && !reconnect()) {
-                std::this_thread::sleep_for(RECONNECT_DELAY);
-                continue;
-            }
-        
+        if (!connected && !reconnect()) 
+        {
+            std::this_thread::sleep_for(RECONNECT_DELAY);
+            continue;
+        }
         updateStreams();
-        
    
     }
 
 }
-cv::Mat Camera::convertFrameToMat(const rs2::frame& frame) 
+
+
+bool Camera::initialize()
+{
+    // Configure the pipeline for color and depth streams
+    config.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
+    config.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
+
+    // Retrieve the depth scale from a temporary pipeline start
+    rs2::pipeline_profile profile = pipe.start(config);
+    auto sensor = profile.get_device().first<rs2::depth_sensor>();
+    depth_scale = sensor.get_depth_scale();
+
+    return true;
+
+}
+
+cv::Mat Camera::convertFrameToMat(const rs2::frame &frame)
 {
     // Get frame dimensions
     int width = frame.as<rs2::video_frame>().get_width();
     int height = frame.as<rs2::video_frame>().get_height();
 
     // Convert to OpenCV Mat
-    if (frame.get_profile().format() == RS2_FORMAT_BGR8) 
+    if(frame.get_profile().format() == RS2_FORMAT_BGR8) 
         return cv::Mat(cv::Size(width, height), CV_8UC3, (void*)frame.get_data(), cv::Mat::AUTO_STEP);
-    else if (frame.get_profile().format() == RS2_FORMAT_Z16) 
+    else if(frame.get_profile().format() == RS2_FORMAT_Z16) 
         return cv::Mat(cv::Size(width, height), CV_16U, (void*)frame.get_data(), cv::Mat::AUTO_STEP);
-    else 
-        throw std::runtime_error("Unsupported frame format");
 }
 
 

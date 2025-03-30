@@ -1,4 +1,4 @@
-#include "GPS.h"
+#include <GPS.h>
 
 GPS::GPS(boost::asio::io_service& service, const std::string& new_port)
     : 
