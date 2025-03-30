@@ -1,7 +1,7 @@
-#include <Camera.h>
+#include "Camera.h"
 
-
-Camera::Camera() : align_to(RS2_STREAM_COLOR), fps(0.0f){
+Camera::Camera() : align_to(RS2_STREAM_COLOR), fps(0.0f)
+{
     // Configure the pipeline for color and depth streams
     config.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
     config.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
@@ -10,8 +10,6 @@ Camera::Camera() : align_to(RS2_STREAM_COLOR), fps(0.0f){
     rs2::pipeline_profile profile = pipe.start(config);
     auto sensor = profile.get_device().first<rs2::depth_sensor>();
     depth_scale = sensor.get_depth_scale();
-
-
 }
 
 
@@ -20,7 +18,49 @@ Camera::~Camera()
     pipe.stop();
 }
 
+bool Camera::start()
+{
+    if (running) return true;
 
+    running = true;
+    update_thread = std::make_unique<std::thread>(&Camera::updateLoop, this);
+    
+    return running;
+}
+
+void Camera::stop()
+{
+     running = false;
+    
+    if (update_thread && update_thread->joinable()) {
+        update_thread->join();
+    }
+    update_thread.reset();
+
+}
+
+
+void Camera::updateLoop() 
+{
+    std::cerr << "Camera update loop started" << std::endl;
+    auto update_period = std::chrono::milliseconds(1000/ update_frequency);
+    auto start_time = std::chrono ::steady_clock::now();
+    auto elapsed = std::chrono ::steady_clock::now();
+
+
+    while(running)
+    {
+        if (!connected && !reconnect()) {
+                std::this_thread::sleep_for(RECONNECT_DELAY);
+                continue;
+            }
+        
+        updateStreams();
+        
+   
+    }
+
+}
 cv::Mat Camera::convertFrameToMat(const rs2::frame& frame) 
 {
     // Get frame dimensions
@@ -47,7 +87,7 @@ void Camera::updateFPS() {
 }
 
 
-void Camera::updateFrames()
+void Camera::updateStreams()
 {
      // Wait for a synchronized frameset
     rs2::frameset frameset = pipe.wait_for_frames();
@@ -85,60 +125,60 @@ void Camera::preprocessFrames(std::vector<float> &output)
 
 
 
-void Camera::displayStreams()
-{
-    cv::Mat depth_display;
-    depth_mat.convertTo(depth_display, CV_8UC1, 255.0 / 1000.0);
+// void Camera::displayStreams()
+// {
+//     cv::Mat depth_display;
+//     depth_mat.convertTo(depth_display, CV_8UC1, 255.0 / 1000.0);
     
-    cv::applyColorMap(depth_display,depth_display,cv::COLORMAP_JET);
-    cv::imshow("Color Frame", color_mat);
-    cv::imshow("Depth Frame", depth_display);
-}
+//     cv::applyColorMap(depth_display,depth_display,cv::COLORMAP_JET);
+//     cv::imshow("Color Frame", color_mat);
+//     cv::imshow("Depth Frame", depth_display);
+// }
 
 
-void Camera::displayDetections(const std::vector<DetectedObject>& detections)
-{      
+// void Camera::displayDetections(const std::vector<DetectedObject>& detections)
+// {      
     
-    updateFPS();
-    cv::Mat display_image = color_mat.clone();
-    std::string fps_text = "FPS: " + std::to_string(static_cast<int>(fps));
-    cv::putText(display_image, fps_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
+//     updateFPS();
+//     cv::Mat display_image = color_mat.clone();
+//     std::string fps_text = "FPS: " + std::to_string(static_cast<int>(fps));
+//     cv::putText(display_image, fps_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
     
-    for (const auto& det : detections) 
-    {
-        // Rest of your drawing code, but use scaled_bbox instead of det.bbox
-        cv::Scalar color;
-        std::string label;
+//     for (const auto& det : detections) 
+//     {
+//         // Rest of your drawing code, but use scaled_bbox instead of det.bbox
+//         cv::Scalar color;
+//         std::string label;
         
-        switch(det.classId) 
-        {
-            case 0:
-                color = cv::Scalar(0, 255, 0);
-                label = "MobileGoal";
-                break;
-            case 1:
-                color = cv::Scalar(0, 0, 255);
-                label = "RedRing";
-                break;
-            case 2:
-                color = cv::Scalar(255, 0, 0);
-                label = "BlueRing";
-                break;
-        }
+//         switch(det.classId) 
+//         {
+//             case 0:
+//                 color = cv::Scalar(0, 255, 0);
+//                 label = "MobileGoal";
+//                 break;
+//             case 1:
+//                 color = cv::Scalar(0, 0, 255);
+//                 label = "RedRing";
+//                 break;
+//             case 2:
+//                 color = cv::Scalar(255, 0, 0);
+//                 label = "BlueRing";
+//                 break;
+//         }
 
-        cv::rectangle(display_image, det.bbox, color, 2);
-        label += " " + std::to_string(static_cast<int>(det.confidence * 100)) + "%";
+//         cv::rectangle(display_image, det.bbox, color, 2);
+//         label += " " + std::to_string(static_cast<int>(det.confidence * 100)) + "%";
 
-        cv::Point text_origin(det.bbox.x, det.bbox.y - 5);
-        cv::Size text_size = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 0.5, 2, nullptr);
-        cv::rectangle(display_image, 
-                     cv::Point(text_origin.x, text_origin.y - text_size.height),
-                     cv::Point(text_origin.x + text_size.width, text_origin.y + 5),
-                     color, -1);
+//         cv::Point text_origin(det.bbox.x, det.bbox.y - 5);
+//         cv::Size text_size = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 0.5, 2, nullptr);
+//         cv::rectangle(display_image, 
+//                      cv::Point(text_origin.x, text_origin.y - text_size.height),
+//                      cv::Point(text_origin.x + text_size.width, text_origin.y + 5),
+//                      color, -1);
 
-        cv::putText(display_image, label, text_origin,cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 2);
-    }
+//         cv::putText(display_image, label, text_origin,cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 2);
+//     }
 
-    cv::imshow("Color Frame", display_image);
+//     cv::imshow("Color Frame", display_image);
  
-}
+// }

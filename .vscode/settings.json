@@ -70,7 +70,8 @@
         "future": "cpp",
         "typeindex": "cpp",
         "locale": "cpp",
-        "tensor": "cpp"
+        "tensor": "cpp",
+        "unordered_set": "cpp"
     }
 
 

@@ -5,7 +5,7 @@
         "name": "Launch MyProject",
         "type": "cppdbg",
         "request": "launch",
-        "program": "${workspaceFolder}/build/my_project",
+        "program": "${workspaceFolder}/build/CameraTest",
         "args": [],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",

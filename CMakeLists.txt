@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.19)
 project(CameraTest)
 
 # Set C++ standard
@@ -8,15 +8,21 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # This is important for VSCode
 add_definitions(-Wno-deprecated-declarations)
 
 # Find CUDA
-find_package(CUDA REQUIRED)
-include_directories(${CUDA_INCLUDE_DIRS})
+find_package(CUDAToolkit REQUIRED)
+include_directories(${CUDAToolkit_INCLUDE_DIRS})
 set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
+
+
+find_package(Boost REQUIRED COMPONENTS thread system)
 
 # Find the i2c library
 find_library(I2C_LIBRARY i2c PATHS /usr/lib/aarch64-linux-gnu)
 
 # Find OpenCV
 find_package(OpenCV REQUIRED)
+
+# Find Open3D
+find_package(Open3D REQUIRED)
 
 # Find RealSense
 find_package(PkgConfig REQUIRED)
@@ -34,9 +40,10 @@ if(NOT I2C_LIBRARY)
 endif()
 
 include_directories(
-    ${CMAKE_SOURCE_DIR}/include # Add this line for the new include directory
+    ${CMAKE_SOURCE_DIR}/include 
     ${OpenCV_INCLUDE_DIRS}
     ${REALSENSE2_INCLUDE_DIRS}
+    ${Open3D_INCLUDE_DIRS}  
 )
 
 # Link directories
@@ -58,17 +65,19 @@ add_executable(CameraTest
     src/UPS.cpp
 )
 
-# Link libraries - Using Dynamic CUDA Runtime (cudart)
+
+
 target_link_libraries(CameraTest
     ${OpenCV_LIBS}
     ${REALSENSE2_LIBRARIES}
     ${LIBSERIAL_LIBRARIES}
-    ${I2C_LIBRARY}  # Add the I2C library here
+    ${Boost_LIBRARIES}  
+    ${I2C_LIBRARY}
+    Open3D::Open3D
     cudart
     nvinfer
     nvonnxparser
     rt
     pthread
-    /usr/lib/aarch64-linux-gnu/libboost_thread.so
-    /usr/lib/aarch64-linux-gnu/libboost_system.so
+    
 )

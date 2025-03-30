@@ -5,6 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/include",
+                "/usr/local/include/open3d",  
                 "/usr/local/cuda/include",
                 "/usr/include/opencv4",
                 "/usr/include/eigen3",
@@ -13,7 +14,7 @@
             ]
             ,
             "defines": [],
-            "compilerPath": "/usr/bin/gcc",
+            "compilerPath": "/usr/bin/g++-7",
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "linux-gcc-arm64"

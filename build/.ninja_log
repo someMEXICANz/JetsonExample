@@ -1,0 +1,18 @@
+# ninja log v5
+8	5359	1743288809	CMakeFiles/CameraTest.dir/src/Position.cpp.o	f2898a6d7bc7b2fd
+5	105774	1743288909	CMakeFiles/CameraTest.dir/src/Model.cpp.o	193277bb07ef03df
+6	105804	1743288909	CMakeFiles/CameraTest.dir/src/ObjectDetection.cpp.o	3350821af82c83cd
+7	105904	1743288909	CMakeFiles/CameraTest.dir/src/GPS.cpp.o	8b108f60cc2c90b4
+5360	106367	1743288910	CMakeFiles/CameraTest.dir/src/RobotPosition.cpp.o	5ff8c903ab9d45a7
+106368	110189	1743288913	CMakeFiles/CameraTest.dir/src/UPS.cpp.o	48abeac86dbbea58
+105781	110790	1743288914	CMakeFiles/CameraTest.dir/src/BrainCommStats.cpp.o	1d46a1ba2ff078ac
+105911	111975	1743288915	CMakeFiles/CameraTest.dir/src/IMU.cpp.o	cdb9a4c36fcace16
+105804	121386	1743288925	CMakeFiles/CameraTest.dir/src/BrainComm.cpp.o	ee6ed67b5872f45e
+4	132036	1743288935	CMakeFiles/CameraTest.dir/src/Camera.cpp.o	f006c48befa40ecd
+3	136269	1743288940	CMakeFiles/CameraTest.dir/src/main.cpp.o	1a07b649166e7981
+136270	141184	1743288944	CameraTest	b7bc36ac6c1a8e0
+135	157062	1743291039	CMakeFiles/CameraTest.dir/src/Camera.cpp.o	f006c48befa40ecd
+107	159236	1743291041	CMakeFiles/CameraTest.dir/src/main.cpp.o	1a07b649166e7981
+159237	175416	1743291058	CameraTest	b7bc36ac6c1a8e0
+56	1097381	1743298874	CMakeFiles/CameraTest.dir/src/main.cpp.o	1a07b649166e7981
+58	1097403	1743298874	CMakeFiles/CameraTest.dir/src/Camera.cpp.o	f006c48befa40ecd
