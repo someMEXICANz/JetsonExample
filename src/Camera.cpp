@@ -102,7 +102,7 @@ void Camera::updateLoop()
     {
         if (!connected) 
         {
-            reconnect()
+            reconnect();
             std::this_thread::sleep_for(RECONNECT_DELAY);
             continue;
         }
