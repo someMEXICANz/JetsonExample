@@ -1,31 +1,72 @@
 #include <Camera.h>
+#include <Camera.h>
+
+
+
 
 Camera::Camera() 
 : align_to(RS2_STREAM_COLOR), 
-  fps(0.0f)
+  fps(0.0f),
+  running(false),
+  connected(false)
 {
     initialize();
-    
 }
 
 
 Camera::~Camera() 
 {
-    pipe.stop();
+    stop();
 }
+
+
+bool Camera::initialize()
+{
+    try {
+        // Configure the pipeline for color and depth streams
+        config.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
+        config.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
+
+        // Retrieve the depth scale from a temporary pipeline start
+        rs2::pipeline_profile profile = pipe.start(config);
+        auto sensor = profile.get_device().first<rs2::depth_sensor>();
+        depth_scale = sensor.get_depth_scale();
+        
+        connected = true;
+        return true;
+    }
+    catch(const rs2::error& e) {
+        std::cerr << "RealSense error: " << e.what() << std::endl;
+        connected = false;
+        return false;
+    }
+    catch(const std::exception& e) {
+        std::cerr << "Error initializing camera: " << e.what() << std::endl;
+        connected = false;
+        return false;
+    }
+}
+
 
 bool Camera::start()
 {
-
-    if (running) return true;
-    
-    if (!connected && !reconnect()) 
-    {
+    if (!connected) 
         return false;
+
+    if(running)
+    {
+        std::cerr << "Camera thread is already running" << std::endl; 
+        return true;
     }
-    
-    update_thread = std::make_unique<std::thread>(&Camera::updateLoop, this);
-    running = true;
+
+    try{
+        update_thread = std::make_unique<std::thread>(&Camera::updateLoop, this);
+        running = true;
+    }catch (const std::exception& e) 
+    {
+        std::cerr << "Failed to start camera thread: " << e.what() << std::endl;
+        running = false;
+    }
     
     return true;
 }
@@ -39,6 +80,7 @@ void Camera::stop()
     }
     update_thread.reset();
 
+    pipe.stop();
     connected = false;
 
 }
@@ -56,12 +98,11 @@ bool Camera::reconnect()
 void Camera::updateLoop() 
 {
     std::cerr << "Camera update loop started" << std::endl;
-    
-
     while(running)
     {
-        if (!connected && !reconnect()) 
+        if (!connected) 
         {
+            reconnect()
             std::this_thread::sleep_for(RECONNECT_DELAY);
             continue;
         }
@@ -72,20 +113,7 @@ void Camera::updateLoop()
 }
 
 
-bool Camera::initialize()
-{
-    // Configure the pipeline for color and depth streams
-    config.enable_stream(RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_BGR8, 30);
-    config.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
 
-    // Retrieve the depth scale from a temporary pipeline start
-    rs2::pipeline_profile profile = pipe.start(config);
-    auto sensor = profile.get_device().first<rs2::depth_sensor>();
-    depth_scale = sensor.get_depth_scale();
-
-    return true;
-
-}
 
 cv::Mat Camera::convertFrameToMat(const rs2::frame &frame)
 {
@@ -119,6 +147,7 @@ void Camera::updateStreams()
     // Align depth to color
     frameset = align_to.process(frameset);
 
+
     // Get color and depth frames
     color_frame = frameset.get_color_frame();
     depth_frame = frameset.get_depth_frame();
@@ -131,6 +160,11 @@ void Camera::updateStreams()
 
 void Camera::preprocessFrames(std::vector<float> &output)
 {
+
+    if (color_mat.empty()) {
+        std::cerr << "Error: color_mat is empty, cannot preprocess frames" << std::endl;
+        return;
+    }
     cv::Mat resized;
     cv::resize(color_mat, resized, cv::Size(320, 320), 0, 0, cv::INTER_CUBIC);
 

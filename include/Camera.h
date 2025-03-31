@@ -33,7 +33,7 @@ public:
     // void displayStreams();                                      // Open 2 windows and display raw depth and color streams 
     // void displayDetections(const std::vector<DetectedObject>& detections);
 
-    // Core Operations
+    // Thread Operations
     bool start();
     void stop();
     bool restart();
@@ -52,7 +52,7 @@ private:
     // Internal methods
     void updateLoop();
     bool initialize();
-    bool reconnect();
+    bool reconnect();    
 
     bool running;
     bool connected;
