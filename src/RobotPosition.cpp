@@ -3,9 +3,10 @@
 using namespace std;
 
 // In RobotPosition.cpp - Initialize offsets in constructor
-RobotPosition::RobotPosition(Brain::BrainComm& brain, IMU& imu)
+RobotPosition::RobotPosition(Brain::BrainComm& brain, IMU& imu, boost::asio::io_service& service)
     : pos_brain(brain),
       pos_imu(imu),
+      pos_service(service),
       gps_identified(false),
       offsets_received(false),
       heading_offset_(0.0f),
@@ -25,6 +26,7 @@ RobotPosition::RobotPosition(Brain::BrainComm& brain, IMU& imu)
     // Initialize timestamps with system_clock
     last_calibration_time = std::chrono::system_clock::now();
     last_velocity_update = std::chrono::system_clock::now();
+    start();
 }
 
 RobotPosition::~RobotPosition() {
@@ -38,21 +40,25 @@ RobotPosition::~RobotPosition() {
 
 bool RobotPosition::start() 
 {
-      if(running)
+    if(running)
     {
-        std::cerr << "Robot thread is already running" << std::endl; 
+        std::cerr << "Robot Position update thread is already running" << std::endl; 
         return true;
     }
-    
-    if(gps_identified)
-    {
+
+    try{  
+
         update_thread = make_unique<thread>(&RobotPosition::updateLoop, this);
         running = true;
-    }
-    else
-        running = false;
+        return true;
 
-    return running;
+    } catch (const std::exception& e) 
+    {
+        std::cerr << "Failed to start Robot Position update thread: " << e.what() << std::endl;
+        running = false;
+        return false; 
+    }
+  
 }
 
 void RobotPosition::stop() 
@@ -69,7 +75,7 @@ void RobotPosition::stop()
 
 
 
-bool RobotPosition::initialize(boost::asio::io_service& io_service) 
+bool RobotPosition::initialize() 
 {
     if(!pos_brain.isConnected() && !pos_brain.isRunning())
     {
@@ -87,7 +93,7 @@ bool RobotPosition::initialize(boost::asio::io_service& io_service)
     
     // Initialize GPS sensors
     std::cerr << "Initializing GPS1 on port: " << gps_ports[0] << std::endl;
-    gps1 = std::make_unique<GPS>(io_service, gps_ports[0]);
+    gps1 = std::make_unique<GPS>(pos_service, gps_ports[0]);
     if (!gps1->start()) 
     {
         std::cerr << "Error: Failed to start GPS1 thread" << std::endl;
@@ -99,7 +105,7 @@ bool RobotPosition::initialize(boost::asio::io_service& io_service)
 
     
     std::cerr << "Initializing GPS2 on port: " << gps_ports[1] << std::endl;
-    gps2 = std::make_unique<GPS>(io_service, gps_ports[1]);
+    gps2 = std::make_unique<GPS>(pos_service, gps_ports[1]);
     if (!gps2->start()) 
     {
         std::cerr << "Error: Failed to start GPS2 thread" << std::endl;
@@ -145,79 +151,83 @@ void RobotPosition::updateLoop()
     
     while (running) 
     {
+        if(!gps_identified)
+        {
+            if(!initialize())
+            {
+                std::this_thread::sleep_for(RETRY_DELAY);
+                continue;
+            }
+        }
+
         start_time = std::chrono::steady_clock::now();
-        /////////
 
-            // Get raw position data from GPS sensors
-    GPSPosition left_pos = left_gps->getGPSposition();
-    GPSPosition right_pos = right_gps->getGPSposition();
-    float left_quality =left_pos.quality;
-    float right_quality = right_pos.quality;
-    
-    // Get brain-reported positions (already have offsets applied)
-    Brain::Position2D brain_left = pos_brain.getLeftGPSData();
-    Brain::Position2D brain_right = pos_brain.getRightGPSData();
-    
-    // Create a new position estimate
-    Position new_position;
-    
-    // Calculate weighted position based on quality
-    float total_quality = left_quality + right_quality;
-    
-    if (total_quality > 0.1f) {
-        // At least one GPS has some usable data
-        float left_weight = left_quality / total_quality;
-        float right_weight = right_quality / total_quality;
-        
-        // Use brain-reported positions (with offsets already applied)
-        // This is more accurate than applying offsets ourselves
-        new_position.x = brain_left.x * left_weight + brain_right.x * right_weight;
-        new_position.y = brain_left.y * left_weight + brain_right.y * right_weight;
-        
-        // Z coordinate typically less important for 2D navigation
-        new_position.z = (left_pos.z * left_weight + right_pos.z * right_weight);
-        
-        // Use IMU for heading (azimuth)
-        new_position.azimuth = getHeadingFromIMU();
-        
-        // For elevation and rotation, use weighted average from GPS
-        new_position.elevation = left_pos.elevation * left_weight + right_pos.elevation * right_weight;
-        new_position.rotation = left_pos.rotation * left_weight + right_pos.rotation * right_weight;
-        
-        // Set confidence based on GPS quality
-        new_position.confidence = total_quality / 2.0f;  // Average quality
-    } else {
-        // No reliable GPS data - use last known position
-        std::lock_guard<std::mutex> lock(position_mutex);
-        new_position = current_position;
-        
-        // Still update heading from IMU
-        new_position.azimuth = getHeadingFromIMU();
-        
-        // Decay confidence over time
-        new_position.confidence *= 0.8f;
-    }
-    
-    // Set timestamp
-    new_position.timestamp = std::chrono::system_clock::now();
-    
-    // Apply filtering
-    filterPosition(new_position);
-    
-    // Update velocity estimation
-    updateVelocity(new_position);
-    
-    // Update stored position
-    {
-        std::lock_guard<std::mutex> lock(position_mutex);
-        current_position = new_position;
-        position_confidence = new_position.confidence;
-    }
+        // Get raw position data from GPS sensors
+        GPSPosition left_pos = left_gps->getGPSposition();
+        GPSPosition right_pos = right_gps->getGPSposition();
+        float left_quality =left_pos.quality;
+        float right_quality = right_pos.quality;
 
+        // Get brain-reported positions (already have offsets applied)
+        Brain::Position2D brain_left = pos_brain.getLeftGPSData();
+        Brain::Position2D brain_right = pos_brain.getRightGPSData();
 
+        // Create a new position estimate
+        Position new_position;
 
-        ///////
+        // Calculate weighted position based on quality
+        float total_quality = left_quality + right_quality;
+
+        if (total_quality > 0.1f) 
+        {
+            // At least one GPS has some usable data
+            float left_weight = left_quality / total_quality;
+            float right_weight = right_quality / total_quality;
+            
+            // Use brain-reported positions (with offsets already applied)
+            // This is more accurate than applying offsets ourselves
+            new_position.x = brain_left.x * left_weight + brain_right.x * right_weight;
+            new_position.y = brain_left.y * left_weight + brain_right.y * right_weight;
+            
+            // Z coordinate typically less important for 2D navigation
+            new_position.z = (left_pos.z * left_weight + right_pos.z * right_weight);
+            
+            // Use IMU for heading (azimuth)
+            new_position.azimuth = getHeadingFromIMU();
+            
+            // For elevation and rotation, use weighted average from GPS
+            new_position.elevation = left_pos.elevation * left_weight + right_pos.elevation * right_weight;
+            new_position.rotation = left_pos.rotation * left_weight + right_pos.rotation * right_weight;
+            
+            // Set confidence based on GPS quality
+            new_position.confidence = total_quality / 2.0f;  // Average quality
+        }
+        else 
+        {
+            // No reliable GPS data - use last known position
+            std::lock_guard<std::mutex> lock(position_mutex);
+            new_position = current_position;
+            // Still update heading from IMU
+            new_position.azimuth = getHeadingFromIMU();
+            // Decay confidence over time
+            new_position.confidence *= 0.0f;
+        }
         
+        // Set timestamp
+        new_position.timestamp = std::chrono::system_clock::now();
+        
+        // Apply filtering
+        filterPosition(new_position);
+        
+        // Update velocity estimation
+        updateVelocity(new_position);
+    
+        // Update stored position
+        {
+            std::lock_guard<std::mutex> lock(position_mutex);
+            current_position = new_position;
+            position_confidence = new_position.confidence;
+        }
         // Calculate time to sleep using steady_clock for consistent timing
         elapsed = std::chrono::steady_clock::now() - start_time;
         if (elapsed < update_period) 

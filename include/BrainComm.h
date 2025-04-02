@@ -55,7 +55,7 @@ private:
     // Thread functions
     void readLoop();
     void writeLoop();
-    void detectionLoop() 
+    void detectionLoop();
     
     // Internal methods
     bool initializePort();

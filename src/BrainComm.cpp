@@ -1,4 +1,5 @@
 #include "BrainComm.h"
+#include "PortDetector.h"
 #include <iomanip>
 using namespace std;
 
@@ -43,18 +44,28 @@ BrainComm::~BrainComm()
 
 
 
-bool BrainComm::start() {
-    if (running) return true;
-    
-    if (!connected && !reconnect()) 
+bool BrainComm::start() 
+{
+    if(running)
     {
-        return false;
+        std::cerr << "Brain read and write threads are already running" << std::endl; 
+        return true;
     }
- 
-    read_thread = make_unique<thread>(&BrainComm::readLoop, this);
-    write_thread = make_unique<thread>(&BrainComm::writeLoop, this);
-    running = true;
-    return true;
+    
+    try{  
+
+        read_thread = make_unique<thread>(&BrainComm::readLoop, this);
+        write_thread = make_unique<thread>(&BrainComm::writeLoop, this);
+        running = true;
+        return true;
+
+    } catch (const std::exception& e) 
+    {
+        std::cerr << "Failed to start Brain read and write threads: " << e.what() << std::endl;
+        running = false;
+        return false;  
+    }
+    
 }
 
 void BrainComm::stop() 
@@ -104,7 +115,7 @@ bool BrainComm::initializePort()
 {
     if(port == "")
     {
-        std::cerr << "Can not initialize Brain port, no port detected" << std::endl
+        std::cerr << "Can not initialize Brain port, no port detected" << std::endl;
         return false;
     }
     else
@@ -161,7 +172,6 @@ void BrainComm::detectionLoop()
         if (!brain_ports.empty()) 
         {
             {
-                std::lock_guard<std::mutex> lock(detection_mutex);
                 port = brain_ports[0]; // Use the first available port
             }
             std::cerr << "Found Brain port: " << port << std::endl;
@@ -169,6 +179,8 @@ void BrainComm::detectionLoop()
         std::this_thread::sleep_for(CommConstants::RECONNECT_DELAY);
     }
     std::cerr << "Port detection thread stopped" << std::endl;
+    initializePort();
+    start();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////

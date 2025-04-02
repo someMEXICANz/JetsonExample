@@ -15,7 +15,8 @@
 class RobotPosition {
 public:
     // Constructor and initialization
-    explicit RobotPosition(Brain::BrainComm& brain, IMU& imu);
+    explicit RobotPosition(Brain::BrainComm& brain, IMU& imu, 
+                           boost::asio::io_service& service);
     ~RobotPosition();
 
     // Delete copy constructor and assignment operator
@@ -23,7 +24,7 @@ public:
     RobotPosition& operator=(const RobotPosition&) = delete;
 
     // Core operations
-    bool initialize(boost::asio::io_service& io_service);
+    bool initialize();
     bool start();
     void stop();
     bool isRunning() const { return running; }
@@ -46,6 +47,7 @@ private:
     // References to external components
     Brain::BrainComm& pos_brain;
     IMU& pos_imu;
+    boost::asio::io_service& pos_service;
     
     // GPS sensors managed by this class
     std::unique_ptr<GPS> gps1;
@@ -93,6 +95,7 @@ private:
     const float MAX_ANGLE_JUMP = 30.0f;
     const float MAX_COORDINATE = 100.0f;
     const float MIN_CONFIDENCE_THRESHOLD = 0.3f;  // Minimum confidence for reliable position
+    const std::chrono::milliseconds RETRY_DELAY{2500};
     
     // Helper methods
     bool identifyGPSSensors();

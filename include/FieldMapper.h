@@ -32,7 +32,7 @@ class FieldMapper {
 
     private:
 
-
+    
     void updateLoop();
     std::unique_ptr<std::thread> write_thread;
         mutable std::mutex map_mutex;

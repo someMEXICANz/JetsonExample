@@ -20,16 +20,28 @@ GPS::~GPS()
 }
 
 bool GPS::start() {
-    if (running) return true;
-    
-    if (!connected && !reconnect()) {
-        return false;
+    if(running)
+    {
+        std::cerr << "GPS read thread is already running" << std::endl; 
+        return true;
     }
     
-    running = true;
-    read_thread = std::make_unique<std::thread>(&GPS::readLoop, this);
-    
-    return true;
+    if (!connected && !reconnect()) 
+    {
+        return false;
+    }
+    try{  
+       
+        read_thread = std::make_unique<std::thread>(&GPS::readLoop, this);
+        running = true;
+        return true;
+        
+    } catch (const std::exception& e) 
+    {
+        std::cerr << "Failed to start GPS read threads: " << e.what() << std::endl;
+        running = false;
+        return false;  
+    }
 }
 
 void GPS::stop() {

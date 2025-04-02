@@ -7,7 +7,7 @@ Camera::Camera()
   running(false),
   connected(false)
 {
-
+    start();
 }
 
 
@@ -72,11 +72,13 @@ bool Camera::start() {
     }
     
     try {
-        // Start the update thread
+    
         update_thread = std::make_unique<std::thread>(&Camera::updateLoop, this);
         running = true;
         return true;
-    } catch (const std::exception& e) {
+
+    } catch (const std::exception& e) 
+    {
         std::cerr << "Failed to start camera thread: " << e.what() << std::endl;
         running = false;
         return false;  // Return false if thread creation fails

@@ -15,28 +15,6 @@
 using namespace std;
 
 
-
-void printIMUdata(IMU &imu)
-{
-     float ax, ay, az,                                           // Accelerometer data
-           gx, gy, gz,                                           // Gyroscope data
-           mx, my, mz,                                           // Magnetometer data
-           temperature;                                          // Temperature data
-
-    // Read all sensor data
-    if (imu.readAll(ax, ay, az, gx, gy, gz, mx, my, mz, temperature)) 
-    {
-        std::cout << "--------------------------------------------" << std::endl;
-        // Display IMU Data
-        std::cout << "Accel (g):  X: " << ax << "  Y: " << ay << "  Z: " << az << std::endl;    // Accelerometer data in g
-        std::cout << "Gyro (dps): X: " << gx << "  Y: " << gy << "  Z: " << gz << std::endl;    // Gyroscope data in degrees per second
-        std::cout << "Mag (gauss): X: " << mx << "  Y: " << my << "  Z: " << mz << std::endl;   // Magnetometer data in gauss
-        std::cout << "Temperature: " << temperature << " °C" << std::endl;                      // Temperature in Celsius
-         std::cout << "--------------------------------------------" << std::endl;
-    } 
-    
-}
-
 void printUPSdata(UPS &ups)
 {
     //Get voltage and current measurements
@@ -57,74 +35,39 @@ void printUPSdata(UPS &ups)
     std::cout << "--------------------------------------------" << std::endl;
 }
 
-// void printPositionData(RobotPosition &pos)
-// {
 
-//     Position position = pos.getPosition();
-//     float velocity = pos.getVelocity();
-//     std::cout << "--------------------------------------------" << std::endl;
-//     // Print current position data
-//     std::cout << "Position: (" << position.x << ", " << position.y 
-//                 << "), Heading: " << position.azimuth 
-//                 << "°, Confidence: " << position.confidence 
-//                 << ", Velocity: " << velocity << " m/s" << std::endl;
-//     std::cout << "--------------------------------------------" << std::endl;
-
-// }
 
 
 int main() {
+    boost::asio::io_service myService;
 
     UPS ups;
-    ups.initialize();
-
     IMU imu;
-    imu.initialize();
-    imu.start();
-
-
-    imu.calibrateGyroscope();
-    imu.calibrateAccelerometer();
-    imu.calibrateMagnetometer();
-    sleep(1);
-
-    boost::asio::io_service myService;
     Brain::BrainComm brain(myService);
-
-    // // Initialize RobotPosition (manages GPS internally)
-    // std::cout << "Initializing position tracking..." << std::endl;
-    // RobotPosition robotPosition(brain, imu);
-    // if (!robotPosition.initialize(myService)) {
-    //     std::cerr << "Failed to initialize position tracking" << std::endl;
-    //     return 1;
-    // }
-
-    // robotPosition.start();
-
+    RobotPosition robotPosition(brain, imu, myService);
     Camera camera;
-    camera.start();
-    
     Model model;
     ObjectDetection objdet;
 
  
     while (true) 
     {
-    
-        camera.preprocessFrames(model.inferInput);
-        camera.getPointCloud();
-        model.runInference();
-        std::vector<DetectedObject> Det = objdet.decodeOutputs(model.inferOutput1, model.inferOutput2);
-        brain.setJetsonBattery(ups.getBatteryPercentage());
-
-        
-        // printIMUdata(imu);
-        //  printUPSdata(ups);
-        // printPositionData(robotPosition);
-
+        if(camera.isConnected() && camera.isRunning())
+        {
+            camera.preprocessFrames(model.inferInput);
+            camera.getPointCloud();
+            model.runInference();
+            std::vector<DetectedObject> Det = objdet.decodeOutputs(model.inferOutput1, model.inferOutput2);
+        }
+        if(brain.isConnected() && brain.isRunning())
+        {
+            brain.setJetsonBattery(ups.getBatteryPercentage());
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));    
     }
+    camera.stop();
     brain.stop();
+    imu.stop();
     
     
     return 0;

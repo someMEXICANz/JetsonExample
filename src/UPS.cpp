@@ -30,6 +30,9 @@ UPS::UPS(uint8_t addr, const std::string& i2c_device) : addr(addr), i2c_fd(-1) {
     if (i2c_fd < 0) {
         setError("Failed to open I2C device: " + i2c_device);
     }
+    initialize();
+
+
 }
 
 UPS::~UPS() {

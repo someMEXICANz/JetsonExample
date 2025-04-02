@@ -78,8 +78,12 @@ IMU::IMU(const std::string& i2cBus)
     sensor_data_.valid = false;
     
     // Try to initialize if bus is provided
-    if (!i2c_bus_.empty()) {
-        initialize();
+    if (!i2c_bus_.empty()) 
+    {
+        if(initialize())
+        {
+            start();
+        }
     }
 }
 
@@ -140,6 +144,11 @@ bool IMU::start() {
     
     running_ = true;
     read_thread_ = std::make_unique<std::thread>(&IMU::readLoop, this);
+
+    calibrateGyroscope();
+    calibrateAccelerometer();
+    calibrateMagnetometer();
+    sleep(1);
     
     return true;
 }
