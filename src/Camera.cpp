@@ -27,6 +27,7 @@ bool Camera::initialize()
         // Retrieve the depth scale from a temporary pipeline start
         rs2::pipeline_profile pipe_profile = pipe.start(config);
         rs2::depth_sensor sensor = pipe_profile.get_device().first<rs2::depth_sensor>();
+
         rs_sensor = std::make_shared<rs2::depth_sensor>(sensor);
         depth_scale = rs_sensor->get_depth_scale();
         connected = true;
@@ -56,33 +57,30 @@ bool Camera::initialize()
 }
 
 
-bool Camera::start()
-{
-
-     if(running)
-    {
+bool Camera::start() {
+    if (running) {
         std::cerr << "Camera thread is already running" << std::endl; 
         return true;
     }
 
-    if (!connected) 
-    {
-        if(!initialize())
-        {
-            std::cerr << "Error in start() failed to initialize" << std::endl;
+    // Try to establish camera connection if needed
+    if (!connected) {
+        if (!initialize()) {
+            std::cerr << "Error in start(): failed to initialize camera" << std::endl;
+            return false;  // Return false if initialization fails
         }
     }
     
-    try{
+    try {
+        // Start the update thread
         update_thread = std::make_unique<std::thread>(&Camera::updateLoop, this);
         running = true;
-    }catch (const std::exception& e) 
-    {
+        return true;
+    } catch (const std::exception& e) {
         std::cerr << "Failed to start camera thread: " << e.what() << std::endl;
         running = false;
+        return false;  // Return false if thread creation fails
     }
-    
-    return true;
 }
 
 void Camera::stop()
@@ -100,12 +98,25 @@ void Camera::stop()
 }
 
 bool Camera::restart() {
+    std::cerr << "Restarting camera..." << std::endl;
     stop();
     return start();
 }
 
-bool Camera::reconnect()
-{
+bool Camera::reconnect() {
+    std::cerr << "Attempting to reconnect camera..." << std::endl;
+    
+    // Make sure pipeline is stopped before reconnecting
+    try {
+        if (connected) {
+            pipe.stop();
+        }
+        connected = false;
+    } catch (const std::exception& e) {
+        std::cerr << "Error stopping pipeline during reconnect: " << e.what() << std::endl;
+    }
+    
+    // Try to initialize again
     return initialize();
 }
 

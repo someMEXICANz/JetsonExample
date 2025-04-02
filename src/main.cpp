@@ -89,10 +89,7 @@ int main() {
     sleep(1);
 
     boost::asio::io_service myService;
-
-    std::string brain_port = PortDetector::findBrainPorts()[0]; // Get first brain
-    Brain::BrainComm brain(myService, brain_port);
-    brain.start();
+    Brain::BrainComm brain(myService);
 
     // // Initialize RobotPosition (manages GPS internally)
     // std::cout << "Initializing position tracking..." << std::endl;

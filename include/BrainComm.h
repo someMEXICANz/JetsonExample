@@ -14,7 +14,7 @@ namespace Brain {
 
 class BrainComm {
 public:
-    explicit BrainComm(boost::asio::io_service& service, const std::string& usb_port = "");
+    explicit BrainComm(boost::asio::io_service& service);
     ~BrainComm();
 
     // Delete copy constructor and assignment operator
@@ -55,6 +55,7 @@ private:
     // Thread functions
     void readLoop();
     void writeLoop();
+    void detectionLoop() 
     
     // Internal methods
     bool initializePort();
@@ -77,6 +78,7 @@ private:
     // Thread management
     std::unique_ptr<std::thread> read_thread;
     std::unique_ptr<std::thread> write_thread;
+    std::unique_ptr<std::thread> port_thread;
     // State variables
 
     // Mutexes for thread safety

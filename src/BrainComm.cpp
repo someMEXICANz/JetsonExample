@@ -6,9 +6,9 @@ namespace Brain {
 
 
 // Constructor
-BrainComm::BrainComm(boost::asio::io_service& service, const string& usb_port)
+BrainComm::BrainComm(boost::asio::io_service& service)
     : io_service(service)
-    , port(usb_port)
+    , port("")
     , running(false)
     , connected(false)
     , serial_port(nullptr)
@@ -33,10 +33,7 @@ BrainComm::BrainComm(boost::asio::io_service& service, const string& usb_port)
     current_control_flags = {0};
     current_battery_lvl = 0;
     
-    // Try to connect if port is provided
-    if (!port.empty()) {
-        initializePort();
-    }
+    port_thread = make_unique<thread>(&BrainComm::detectionLoop, this);
 }
 
 BrainComm::~BrainComm() 
@@ -105,6 +102,19 @@ bool BrainComm::reconnect()
 
 bool BrainComm::initializePort() 
 {
+    if(port == "")
+    {
+        std::cerr << "Can not initialize Brain port, no port detected" << std::endl
+        return false;
+    }
+    else
+    {
+        if (read_thread && read_thread->joinable()) 
+        {
+            read_thread->join();
+            read_thread.reset();
+        }
+    }
     try {
         serial_port = make_unique<boost::asio::serial_port>(io_service);
         serial_port->open(port);
@@ -136,6 +146,29 @@ bool BrainComm::updateRequests(uint16_t flags)
     pending_requests.push(flags);
     cerr << "Request queued with flags: 0x" << hex << flags << dec << endl;
     return true;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void BrainComm::detectionLoop() 
+{
+    std::cerr << "Brain port detection thread started" << std::endl;
+    while (port == "") 
+    {
+        // Try to find Brain ports
+        std::vector<std::string> brain_ports = PortDetector::findBrainPorts();
+        
+        if (!brain_ports.empty()) 
+        {
+            {
+                std::lock_guard<std::mutex> lock(detection_mutex);
+                port = brain_ports[0]; // Use the first available port
+            }
+            std::cerr << "Found Brain port: " << port << std::endl;
+        }
+        std::this_thread::sleep_for(CommConstants::RECONNECT_DELAY);
+    }
+    std::cerr << "Port detection thread stopped" << std::endl;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
