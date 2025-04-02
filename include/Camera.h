@@ -1,14 +1,22 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include <librealsense2/rs.hpp>
-#include <opencv2/opencv.hpp>
-#include <ObjectDetection.h>
+
 #include <stdexcept>
 #include <mutex>
 #include <thread>
 #include <iostream>
+#include <vector>
+
 #include "open3d/Open3D.h"
+#include <librealsense2/rs.hpp>
+#include <librealsense2/rs.h>
+#include <opencv2/opencv.hpp>
+#include <ObjectDetection.h>
+#include <open3d/t/geometry/RGBDImage.h>
+#include <open3d/t/geometry/PointCloud.h>
+#include <Eigen/Dense>
+#include <librealsense2/h/rs_types.h>
 
 
 
@@ -24,14 +32,13 @@ public:
     Camera(const Camera&) = delete;
     Camera& operator=(const Camera&) = delete;
 
-    rs2::frame color_frame, depth_frame;                        // Raw Frames
-    cv::Mat color_mat, depth_mat ;                              // Frames in OpenCV format 
-    float depth_scale;                                          // Depth scale for converting depth values
+
+    int color_fps;
+    int depth_fps;                                          
     
     void updateStreams();                                      
     void preprocessFrames(std::vector<float> &output); // Prepare & Process frame for Tensorrt engine
-    // void displayStreams();                                      // Open 2 windows and display raw depth and color streams 
-    // void displayDetections(const std::vector<DetectedObject>& detections);
+    std::shared_ptr<open3d::geometry::PointCloud> getPointCloud();
 
     // Thread Operations
     bool start();
@@ -48,8 +55,25 @@ private:
     rs2::pipeline pipe;              // RealSense pipeline
     rs2::config config;              // Configuration for the pipeline
     rs2::align align_to;             // Align depth to color
+    rs2::frameset frameset;
+
+    std::shared_ptr<rs2::depth_sensor> rs_sensor;
+    rs2::stream_profile depth_stream;
+    rs2::stream_profile color_stream;
+    rs2::video_stream_profile depth_profile;
+    rs2::video_stream_profile color_profile;
+
+    rs2::frame color_frame; 
+    rs2::frame depth_frame;                      
+    cv::Mat color_mat;
+            
+    rs2_intrinsics rs_intrinsic;
+    open3d::camera::PinholeCameraIntrinsic o3d_intrinsic;
+    Eigen::Matrix4d o3d_extrinsic;
+    float depth_scale;    
+
+
     
-    // Internal methods
     void updateLoop();
     bool initialize();
     bool reconnect();    
@@ -57,17 +81,10 @@ private:
     bool running;
     bool connected;
 
-    // open3d::t::geometry::PointCloud current_PointCloud;
     std::unique_ptr<std::thread> update_thread;
     std::mutex stream_mutex;
-    // FPS tracking
-    std::chrono::steady_clock::time_point lastFrameTime;
-    float fps;
-    const float fpsAlpha = 0.1f;  // Smoothing factor for FPS moving average
     
     cv::Mat convertFrameToMat(const rs2::frame& frame); // Convert RealSense frame to OpenCV Mat
-    void updateFPS();              // Update FPS calculation
-    
     const std::chrono::milliseconds RECONNECT_DELAY{2500};
 
 

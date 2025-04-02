@@ -115,14 +115,14 @@ int main() {
     {
     
         camera.preprocessFrames(model.inferInput);
+        camera.getPointCloud();
         model.runInference();
         std::vector<DetectedObject> Det = objdet.decodeOutputs(model.inferOutput1, model.inferOutput2);
-
         brain.setJetsonBattery(ups.getBatteryPercentage());
 
         
         // printIMUdata(imu);
-         printUPSdata(ups);
+        //  printUPSdata(ups);
         // printPositionData(robotPosition);
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));    

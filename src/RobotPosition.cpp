@@ -38,7 +38,11 @@ RobotPosition::~RobotPosition() {
 
 bool RobotPosition::start() 
 {
-    if (running) return true;  // Already running
+      if(running)
+    {
+        std::cerr << "Robot thread is already running" << std::endl; 
+        return true;
+    }
     
     if(gps_identified)
     {

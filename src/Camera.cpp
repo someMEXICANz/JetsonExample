@@ -1,16 +1,13 @@
 #include <Camera.h>
-#include <Camera.h>
-
-
-
 
 Camera::Camera() 
 : align_to(RS2_STREAM_COLOR), 
-  fps(0.0f),
+  color_fps(0),
+  depth_fps(0),
   running(false),
   connected(false)
 {
-    initialize();
+
 }
 
 
@@ -28,11 +25,22 @@ bool Camera::initialize()
         config.enable_stream(RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30);
 
         // Retrieve the depth scale from a temporary pipeline start
-        rs2::pipeline_profile profile = pipe.start(config);
-        auto sensor = profile.get_device().first<rs2::depth_sensor>();
-        depth_scale = sensor.get_depth_scale();
-        
+        rs2::pipeline_profile pipe_profile = pipe.start(config);
+        rs2::depth_sensor sensor = pipe_profile.get_device().first<rs2::depth_sensor>();
+        rs_sensor = std::make_shared<rs2::depth_sensor>(sensor);
+        depth_scale = rs_sensor->get_depth_scale();
         connected = true;
+        depth_stream = pipe_profile.get_stream(RS2_STREAM_DEPTH);
+        color_stream = pipe_profile.get_stream(RS2_STREAM_COLOR);
+        depth_profile = depth_stream.as<rs2::video_stream_profile>();
+        color_profile = color_stream.as<rs2::video_stream_profile>();
+
+        rs_intrinsic = depth_profile.get_intrinsics();
+        o3d_intrinsic.SetIntrinsics(rs_intrinsic.width, rs_intrinsic.height, 
+                                     rs_intrinsic.fx, rs_intrinsic.fy, 
+                                     rs_intrinsic.ppx, rs_intrinsic.ppy);
+
+        std::cerr << "Realsense camera connected and initialized" << std::endl;
         return true;
     }
     catch(const rs2::error& e) {
@@ -50,15 +58,21 @@ bool Camera::initialize()
 
 bool Camera::start()
 {
-    if (!connected) 
-        return false;
 
-    if(running)
+     if(running)
     {
         std::cerr << "Camera thread is already running" << std::endl; 
         return true;
     }
 
+    if (!connected) 
+    {
+        if(!initialize())
+        {
+            std::cerr << "Error in start() failed to initialize" << std::endl;
+        }
+    }
+    
     try{
         update_thread = std::make_unique<std::thread>(&Camera::updateLoop, this);
         running = true;
@@ -102,12 +116,13 @@ void Camera::updateLoop()
     {
         if (!connected) 
         {
-            reconnect();
-            std::this_thread::sleep_for(RECONNECT_DELAY);
-            continue;
+            if(!reconnect())
+            {
+                std::this_thread::sleep_for(RECONNECT_DELAY);
+                continue;
+            }
         }
         updateStreams();
-   
     }
 
 }
@@ -129,37 +144,27 @@ cv::Mat Camera::convertFrameToMat(const rs2::frame &frame)
 }
 
 
-void Camera::updateFPS() {
-    auto currentTime = std::chrono::steady_clock::now();
-    float deltaTime = std::chrono::duration<float>(currentTime - lastFrameTime).count();
-    lastFrameTime = currentTime;
-    
-    float currentFPS = 1.0f / deltaTime;
-    fps = (fps * (1.0f - fpsAlpha)) + (currentFPS * fpsAlpha);
-}
-
 
 void Camera::updateStreams()
 {
-     // Wait for a synchronized frameset
     rs2::frameset frameset = pipe.wait_for_frames();
-
-    // Align depth to color
     frameset = align_to.process(frameset);
 
-
+    std::lock_guard<std::mutex> lock(stream_mutex);
     // Get color and depth frames
     color_frame = frameset.get_color_frame();
     depth_frame = frameset.get_depth_frame();
-    
-    color_mat = convertFrameToMat(color_frame);
-    depth_mat = convertFrameToMat(depth_frame);
+    depth_scale = rs_sensor->get_depth_scale();
+    color_fps = color_profile.fps();
+    depth_fps = depth_profile.fps();
 
 }
 
 
 void Camera::preprocessFrames(std::vector<float> &output)
 {
+    std::lock_guard<std::mutex> lock(stream_mutex);
+    color_mat = convertFrameToMat(color_frame);
 
     if (color_mat.empty()) {
         std::cerr << "Error: color_mat is empty, cannot preprocess frames" << std::endl;
@@ -181,62 +186,18 @@ void Camera::preprocessFrames(std::vector<float> &output)
     std::memcpy(output.data(), blob.ptr<float>(0), 320 * 320 * 3 * sizeof(float));
 }
 
+std::shared_ptr<open3d::geometry::PointCloud> Camera::getPointCloud()
+{
+    std::lock_guard<std::mutex> lock(stream_mutex);
+    const uint16_t* depth_data = reinterpret_cast<const uint16_t*>(depth_frame.get_data());
+    open3d::geometry::Image depth_image;
+    depth_image.Prepare(rs_intrinsic.width, rs_intrinsic.height, 1, 2);
+    std::memcpy(depth_image.data_.data(), depth_data, rs_intrinsic.width * rs_intrinsic.height * 2);
 
-
-// void Camera::displayStreams()
-// {
-//     cv::Mat depth_display;
-//     depth_mat.convertTo(depth_display, CV_8UC1, 255.0 / 1000.0);
-    
-//     cv::applyColorMap(depth_display,depth_display,cv::COLORMAP_JET);
-//     cv::imshow("Color Frame", color_mat);
-//     cv::imshow("Depth Frame", depth_display);
-// }
-
-
-// void Camera::displayDetections(const std::vector<DetectedObject>& detections)
-// {      
-    
-//     updateFPS();
-//     cv::Mat display_image = color_mat.clone();
-//     std::string fps_text = "FPS: " + std::to_string(static_cast<int>(fps));
-//     cv::putText(display_image, fps_text, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
-    
-//     for (const auto& det : detections) 
-//     {
-//         // Rest of your drawing code, but use scaled_bbox instead of det.bbox
-//         cv::Scalar color;
-//         std::string label;
-        
-//         switch(det.classId) 
-//         {
-//             case 0:
-//                 color = cv::Scalar(0, 255, 0);
-//                 label = "MobileGoal";
-//                 break;
-//             case 1:
-//                 color = cv::Scalar(0, 0, 255);
-//                 label = "RedRing";
-//                 break;
-//             case 2:
-//                 color = cv::Scalar(255, 0, 0);
-//                 label = "BlueRing";
-//                 break;
-//         }
-
-//         cv::rectangle(display_image, det.bbox, color, 2);
-//         label += " " + std::to_string(static_cast<int>(det.confidence * 100)) + "%";
-
-//         cv::Point text_origin(det.bbox.x, det.bbox.y - 5);
-//         cv::Size text_size = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 0.5, 2, nullptr);
-//         cv::rectangle(display_image, 
-//                      cv::Point(text_origin.x, text_origin.y - text_size.height),
-//                      cv::Point(text_origin.x + text_size.width, text_origin.y + 5),
-//                      color, -1);
-
-//         cv::putText(display_image, label, text_origin,cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 2);
-//     }
-
-//     cv::imshow("Color Frame", display_image);
- 
-// }
+    depth_frame.get_data();
+    return open3d::geometry::PointCloud::CreateFromDepthImage(depth_image, 
+                                                               o3d_intrinsic, 
+                                                               o3d_extrinsic, 
+                                                               depth_scale, 
+                                                               1000, 1, true);
+}
